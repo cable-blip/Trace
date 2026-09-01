@@ -1,0 +1,24 @@
+[
+  {
+    "transaction_id": "TXN_1001",
+    "timestamp": "2026-04-01T20:00:00",
+    "source_account": "ACC-987654",
+    "source_name": "Devendra Sharma",
+    "target_account": "ACC-555999",
+    "target_name": "Victor Vance",
+    "amount": 2500000.0,
+    "currency": "INR",
+    "remarks": "Consulting Fee - Nexus Clearance"
+  },
+  {
+    "transaction_id": "TXN_1002",
+    "timestamp": "2026-04-02T16:00:00",
+    "source_account": "ACC-555999",
+    "source_name": "Victor Vance",
+    "target_account": "ACC-777201",
+    "target_name": "Tariq Ahmed",
+    "amount": 1800000.0,
+    "currency": "INR",
+    "remarks": "Logistics Disbursement"
+  }
+]

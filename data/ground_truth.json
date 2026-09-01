@@ -1,0 +1,35 @@
+{
+  "case_id": "CASE-NEXUS-001",
+  "case_name": "Operation Nexus",
+  "planted_findings": {
+    "cluster_a": [
+      "Devendra Sharma",
+      "Ramesh Kumar",
+      "Suresh Patil"
+    ],
+    "cluster_b": [
+      "Tariq Ahmed",
+      "Imran Khan",
+      "Zaid Sheikh"
+    ],
+    "bridge_entity": {
+      "name": "Victor Vance",
+      "phone": "+91-98200-99999",
+      "role": "Bridge node connecting Cluster A and Cluster B"
+    },
+    "key_location": "Warehouse 17, Nhava Sheva",
+    "multi_hop_path": [
+      "Devendra Sharma",
+      "Victor Vance",
+      "Warehouse 17, Nhava Sheva",
+      "Tariq Ahmed"
+    ],
+    "key_vehicle": "MH-04-AB-1234"
+  },
+  "documents": [
+    "fir_019.txt",
+    "cdr_029.csv",
+    "transactions_044.json",
+    "surveillance_088.txt"
+  ]
+}
