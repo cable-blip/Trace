@@ -3,7 +3,7 @@ import {
   Network, LayoutDashboard, BarChart3, Clock, Upload, Download,
   ShieldCheck, Zap, Shield, Navigation, FileCheck, ShieldAlert,
   Mic, TrendingUp, Share2, Volume2, PlayCircle, FileText, Lock, Cpu,
-  Siren, FolderGit2
+  Siren, FolderGit2, Trash2, Search
 } from 'lucide-react';
 import { Case } from '../../types';
 
@@ -21,12 +21,13 @@ interface AppShellProps {
   onWarrantClick?: () => void;
   onAudioBriefingClick?: () => void;
   onOpenCaseManager?: () => void;
+  onDeleteActiveCase?: (caseId: string) => void;
   children: React.ReactNode;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
   currentTab, onTabChange, cases, currentCaseId, onCaseChange,
-  nodeCount, edgeCount, onUploadClick, onAuditClick, onExportClick, onWarrantClick, onAudioBriefingClick, onOpenCaseManager, children,
+  nodeCount, edgeCount, onUploadClick, onAuditClick, onExportClick, onWarrantClick, onAudioBriefingClick, onOpenCaseManager, onDeleteActiveCase, children,
 }) => {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const navContainerRef = React.useRef<HTMLDivElement>(null);
@@ -111,6 +112,19 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <FolderGit2 className="w-3.5 h-3.5" />
                   </button>
                 )}
+                {onDeleteActiveCase && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Permanently expunge and delete case ${currentCaseId}?`)) {
+                        onDeleteActiveCase(currentCaseId);
+                      }
+                    }}
+                    title={`Permanently delete case ${currentCaseId}`}
+                    className="p-1 rounded bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <span className="pulse-ring text-[9px] font-mono px-1.5 py-0.5 rounded-sm font-bold tracking-wider"
                   style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }}>
                   LIVE
@@ -177,6 +191,20 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           {/* ── Action Buttons ── */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={onUploadClick}
+              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg transition-all font-bold"
+              style={{
+                background: 'linear-gradient(135deg, rgba(6,182,212,0.2) 0%, rgba(16,185,129,0.15) 100%)',
+                border: '1px solid rgba(6,182,212,0.5)',
+                color: '#06B6D4',
+                boxShadow: '0 0 16px rgba(6,182,212,0.25)',
+              }}
+              title="Ingest Real FIR, CDR, Bank Statement or Case Records"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Ingest Case Data</span>
+            </button>
             {onAudioBriefingClick && (
               <button
                 onClick={onAudioBriefingClick}

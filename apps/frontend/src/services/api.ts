@@ -1,32 +1,45 @@
 import { GraphData, AnalyticsResponse, InvestigatorResponse, EvidenceDocument, Node } from '../types';
 import { OFFLINE_CASES, OFFLINE_GRAPHS, OFFLINE_ANALYTICS } from '../data/caseDatasets';
+import { ClientIntelligenceEngine } from './clientIntelligenceEngine';
 
 // Use VITE_API_BASE_URL env variable (set in .env.local) — never hardcode a production IP.
 // For local dev: set VITE_API_BASE_URL=http://127.0.0.1:8000/api in apps/frontend/.env.local
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
 
 export const fetchCases = async (): Promise<any[]> => {
+  const localCases = ClientIntelligenceEngine.getSavedCases();
   try {
     const res = await fetch(`${API_BASE}/cases`);
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const serverCases = await res.json();
+      const serverIds = new Set(serverCases.map((c: any) => c.id));
+      const merged = [...serverCases, ...localCases.filter(c => !serverIds.has(c.id))];
+      return merged;
+    }
   } catch (e) {
-    console.warn('Backend unavailable, using standalone offline cases');
+    console.warn('Backend unavailable, using local and standalone cases');
   }
-  return OFFLINE_CASES;
+  return [...localCases, ...OFFLINE_CASES.filter(c => !localCases.some(lc => lc.id === c.id))];
 };
 
 export const fetchGraph = async (caseId: string = 'CASE-001', nodeId?: string): Promise<GraphData> => {
+  const localGraph = ClientIntelligenceEngine.getCaseGraph(caseId);
   try {
     const url = nodeId ? `${API_BASE}/cases/${caseId}/graph?node_id=${nodeId}` : `${API_BASE}/cases/${caseId}/graph`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (data && Array.isArray(data.nodes)) {
+        if (data.nodes.length > 0) return data;
+        if (localGraph && localGraph.nodes.length > 0) return localGraph;
         return data;
       }
     }
   } catch (e) {
-    console.warn(`Backend unavailable for graph ${caseId}, using standalone offline dataset`);
+    console.warn(`Backend unavailable for graph ${caseId}, checking local vault`);
+  }
+  if (localGraph && localGraph.nodes.length > 0) {
+    return localGraph;
   }
   if (OFFLINE_GRAPHS[caseId]) {
     return OFFLINE_GRAPHS[caseId];
@@ -387,111 +400,60 @@ export const fetchThreatForecast = async (caseId: string): Promise<any> => {
 };
 
 export const createCase = async (name: string, description: string = 'Criminal Network Investigation'): Promise<any> => {
+  const newCaseId = `CASE-${Date.now().toString().slice(-3)}`;
+  const newCase = {
+    id: newCaseId,
+    name,
+    description,
+    created_at: new Date().toISOString(),
+    node_count: 0,
+    edge_count: 0,
+    document_ids: []
+  };
+  ClientIntelligenceEngine.saveCase(newCase);
+  ClientIntelligenceEngine.saveCaseGraph(newCaseId, { nodes: [], edges: [] });
   try {
     const res = await fetch(`${API_BASE}/cases?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`, {
       method: 'POST',
     });
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn('Create case fallback');
+    console.warn('Create case fallback, stored locally');
   }
-  return {
-    id: `CASE-${Date.now().toString().slice(-3)}`,
-    name,
-    description,
-    created_at: new Date().toISOString(),
-    node_count: 0,
-    edge_count: 0
-  };
+  return newCase;
 };
 
 export const deleteCase = async (caseId: string): Promise<boolean> => {
+  ClientIntelligenceEngine.deleteCase(caseId);
   try {
     const res = await fetch(`${API_BASE}/cases/${caseId}`, { method: 'DELETE' });
     if (res.ok) return true;
   } catch (e) {
     console.error('Delete case failed on backend', e);
   }
-  return false;
+  return true;
 };
 
 export const fetchPoliceSolutions = async (caseId: string): Promise<any> => {
   try {
     const res = await fetch(`${API_BASE}/cases/${caseId}/police-solutions`);
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const serverSolutions = await res.json();
+      if (serverSolutions && serverSolutions.status === 'SOLUTIONS_COMPILED' && serverSolutions.hvt_priority_targets?.length > 0) {
+        return serverSolutions;
+      }
+    }
   } catch (e) {
-    console.warn('Police solutions fallback');
+    console.warn('Police solutions fallback, checking client intelligence engine');
   }
-  return {
-    case_id: caseId,
-    status: 'SOLUTIONS_COMPILED',
-    hvt_priority_targets: [
-      {
-        target_id: 'person_devendra',
-        target_name: 'Devendra Sharma',
-        operational_role: 'PRIMARY FINANCIER & HAWALA ARCHITECT',
-        culpability_score: 98,
-        threat_level: 'TRANSNATIONAL CRITICAL',
-        priority: 'PRIORITY 1 - IMMEDIATE TAKEDOWN',
-        action_directive: 'Execute Non-Bailable Arrest Warrant under BNS Sec 111 & PMLA Sec 3/4.',
-        applicable_statutory_sections: ['BNS Sec 111 (Organized Crime)', 'PMLA Sec 3 & 4 (Money-Laundering)', 'IPC Sec 120B (Conspiracy)']
-      },
-      {
-        target_id: 'person_tariq',
-        target_name: 'Tariq Ahmed',
-        operational_role: 'LOGISTICS & CONTAINER YARD PROXY',
-        culpability_score: 91,
-        threat_level: 'MARITIME ARMED HAZARD',
-        priority: 'PRIORITY 2 - RAID & SEIZURE',
-        action_directive: 'Dawn raid on Warehouse 17 under CrPC Sec 93 with forensic data imaging team.',
-        applicable_statutory_sections: ['NDPS Act Sec 8(c)/21', 'IPC Sec 420 (Cheating)']
-      }
-    ],
-    actionable_directives: [
-      {
-        directive_id: 'DIR-01',
-        category: 'ARREST & RAID AUTHORIZATION',
-        target: 'Devendra Sharma',
-        order: 'Execute Non-Bailable Arrest Warrant under BNS Sec 111 and PMLA Sec 3/4.',
-        urgency: 'IMMEDIATE (Within 24 Hours)',
-        statutory_basis: 'CrPC Section 41A / Section 73'
-      },
-      {
-        directive_id: 'DIR-02',
-        category: 'FINANCIAL FREEZE & SEIZURE',
-        target: 'Hawala Accounts & Offshore Wallets',
-        order: 'Serve Section 102 CrPC freezing orders on Gulf Horizon FZE accounts.',
-        urgency: 'CRITICAL (Prevent Liquidity Flight)',
-        statutory_basis: 'PMLA Sec 17'
-      }
-    ],
-    takedown_bottlenecks: [
-      {
-        node_id: 'account_apex',
-        label: 'ACC-HAWALA-8899',
-        type: 'ACCOUNT',
-        strategic_value: 'PRIMARY FINANCIAL BOTTLENECK',
-        disruption_impact: 'Freezing this account severs operational cash flow to 12 field handlers.'
-      }
-    ],
-    evidence_preservation_alerts: [
-      {
-        alert_type: 'TELCO_BUFFER_EXPIRY',
-        title: 'Telco Base Station Dump Expiration Alert',
-        details: 'Tower logs older than 21 days risk purge. File Section 91 CrPC notice immediately.'
-      }
-    ],
-    operational_playbook_72h: [
-      {
-        timeframe: 'Hour 0 - 12',
-        operation: 'Digital Intercept Lock & Border Watch',
-        steps: ['Transmit IMEI watchlist to NATGRID', 'Freeze accounts at RBI nodal clearance desk']
-      },
-      {
-        timeframe: 'Hour 12 - 36',
-        operation: 'Coordinated Multi-Point Search & Seizure',
-        steps: ['Obtain Search Warrants under CrPC Sec 93', 'Simultaneous dawn raids on warehouse safehouses']
-      }
-    ]
-  };
+
+  const cachedSolutions = ClientIntelligenceEngine.getPoliceSolutions(caseId);
+  if (cachedSolutions && cachedSolutions.hvt_priority_targets?.length > 0) {
+    return cachedSolutions;
+  }
+
+  const currentGraph = ClientIntelligenceEngine.getCaseGraph(caseId) || OFFLINE_GRAPHS[caseId] || { nodes: [], edges: [] };
+  const generatedReport = ClientIntelligenceEngine.analyzeGraphAndGenerateSolutions(caseId, currentGraph);
+  ClientIntelligenceEngine.savePoliceSolutions(caseId, generatedReport);
+  return generatedReport;
 };

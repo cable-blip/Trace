@@ -81,7 +81,7 @@ export const App: React.FC = () => {
 
   const handleCreateCase = async (name: string, desc: string) => {
     const newCase = await createCase(name, desc);
-    setCases(prev => [newCase, ...prev]);
+    setCases(prev => [newCase, ...prev.filter(c => c.id !== newCase.id)]);
     setCaseId(newCase.id);
     setGraphData({ nodes: [], edges: [] });
     setCurrentTab('workspace');
@@ -249,6 +249,7 @@ export const App: React.FC = () => {
       onWarrantClick={() => setIsWarrantOpen(true)}
       onAudioBriefingClick={() => setIsAudioBriefingOpen(true)}
       onOpenCaseManager={() => setIsCaseManagerOpen(true)}
+      onDeleteActiveCase={handleDeleteCase}
     >
       {/* Mission Briefing Landing Portal */}
       {currentTab === 'portal' && (
