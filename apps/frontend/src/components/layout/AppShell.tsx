@@ -19,7 +19,6 @@ interface AppShellProps {
   onAuditClick: () => void;
   onExportClick: () => void;
   onWarrantClick?: () => void;
-  onAudioBriefingClick?: () => void;
   onOpenCaseManager?: () => void;
   onDeleteActiveCase?: (caseId: string) => void;
   children: React.ReactNode;
@@ -27,7 +26,7 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({
   currentTab, onTabChange, cases, currentCaseId, onCaseChange,
-  nodeCount, edgeCount, onUploadClick, onAuditClick, onExportClick, onWarrantClick, onAudioBriefingClick, onOpenCaseManager, onDeleteActiveCase, children,
+  nodeCount, edgeCount, onUploadClick, onAuditClick, onExportClick, onWarrantClick, onOpenCaseManager, onDeleteActiveCase, children,
 }) => {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const navContainerRef = React.useRef<HTMLDivElement>(null);
@@ -42,11 +41,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     { id: 'portal',            label: 'Mission Portal',        icon: ShieldAlert },
     { id: 'workspace',         label: 'Case Workspace',        icon: LayoutDashboard },
     { id: 'police_solutions',  label: 'Police Solutions',      icon: Siren },
-    { id: 'ml_lab',            label: 'ML Model Lab',          icon: Cpu },
-    { id: 'replay',            label: '4D Replay',             icon: PlayCircle },
     { id: 'interrogation',     label: 'AI Interrogation',      icon: Mic },
-    { id: 'forecast',          label: 'Threat Forecast',       icon: TrendingUp },
-    { id: 'fusion',            label: 'Cross-Cartel Fusion',   icon: Share2 },
     { id: 'ledger',            label: 'Forensic Ledger',       icon: Lock },
     { id: 'network',           label: 'Network Canvas',        icon: Network },
     { id: 'analytics',         label: 'Analytics',             icon: BarChart3 },
@@ -205,22 +200,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               <Upload className="w-3.5 h-3.5" />
               <span>Ingest Case Data</span>
             </button>
-            {onAudioBriefingClick && (
-              <button
-                onClick={onAudioBriefingClick}
-                className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all"
-                style={{
-                  background: 'rgba(6,182,212,0.12)',
-                  border: '1px solid rgba(6,182,212,0.4)',
-                  color: '#06B6D4',
-                  boxShadow: '0 0 12px rgba(6,182,212,0.2)',
-                }}
-                title="Synthesize Executive Mission Voice Briefing"
-              >
-                <Volume2 className="w-3.5 h-3.5 animate-pulse" />
-                <span>Voice Briefing</span>
-              </button>
-            )}
+
 
             {onWarrantClick && (
               <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Database, Upload } from 'lucide-react';
+import { Sparkles, Database, Upload, AlertTriangle } from 'lucide-react';
 import { AppShell } from './components/layout/AppShell';
 import { ParticleBackground } from './components/layout/ParticleBackground';
 import { GraphCanvas } from './components/graph/GraphCanvas';
@@ -21,18 +21,13 @@ import { GeoSpatialMapPanel } from './components/investigation/GeoSpatialMapPane
 import { WiretapAudioInspector } from './components/investigation/WiretapAudioInspector';
 import { WarrantGeneratorModal } from './components/investigation/WarrantGeneratorModal';
 import { SuspectInterrogationSimulator } from './components/investigation/SuspectInterrogationSimulator';
-import { ThreatForecastConsole } from './components/investigation/ThreatForecastConsole';
-import { CrossSyndicateFusion } from './components/analytics/CrossSyndicateFusion';
-import { MLModelInspector } from './components/analytics/MLModelInspector';
-import { MissionReplayPlayer } from './components/timeline/MissionReplayPlayer';
-import { AudioBriefingModal } from './components/investigation/AudioBriefingModal';
 import { EvidenceLedger } from './components/evidence/EvidenceLedger';
 import { PoliceSolutionsPanel } from './components/investigation/PoliceSolutionsPanel';
 import { LandingPortal } from './components/layout/LandingPortal';
 import { CaseManagerModal } from './components/layout/CaseManagerModal';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { GraphData, AnalyticsResponse, Node, NodeType, Case, Edge } from './types';
-import { fetchGraph, fetchAnalytics, fetchCommunities, triggerPdfDownload, fetchCases, createCase, deleteCase } from './services/api';
+import { fetchGraph, fetchAnalytics, fetchCommunities, triggerPdfDownload, fetchCases, createCase, deleteCase, checkBackendHealth, onBackendHealthChange, isDemoModeActive, setDemoModeActive } from './services/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
 
@@ -64,7 +59,6 @@ export const App: React.FC = () => {
   const [isIngestionOpen, setIsIngestionOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [isWarrantOpen, setIsWarrantOpen] = useState(false);
-  const [isAudioBriefingOpen, setIsAudioBriefingOpen] = useState(false);
   const [isCaseManagerOpen, setIsCaseManagerOpen] = useState(false);
 
   // Graph Layout & Filtering State
@@ -72,6 +66,16 @@ export const App: React.FC = () => {
   const [minConfidence, setMinConfidence] = useState<number>(0.5);
   const [selectedNodeTypes, setSelectedNodeTypes] = useState<NodeType[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Backend Health & Demo Mode States
+  const [isBackendHealthy, setIsBackendHealthy] = useState<boolean>(true);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(isDemoModeActive());
+
+  useEffect(() => {
+    checkBackendHealth().then(setIsBackendHealthy);
+    const unsub = onBackendHealthChange(setIsBackendHealthy);
+    return unsub;
+  }, []);
 
   // Phase 7 States
   const [leftSubTab, setLeftSubTab] = useState<string>('agent');
@@ -247,10 +251,44 @@ export const App: React.FC = () => {
       onAuditClick={() => setIsAuditOpen(true)}
       onExportClick={handleExportReport}
       onWarrantClick={() => setIsWarrantOpen(true)}
-      onAudioBriefingClick={() => setIsAudioBriefingOpen(true)}
       onOpenCaseManager={() => setIsCaseManagerOpen(true)}
       onDeleteActiveCase={handleDeleteCase}
     >
+      {/* Live Engine Status Warning Banner */}
+      {!isBackendHealthy && (
+        <div className="bg-amber-950/90 border-b border-amber-500/40 px-4 py-2 flex items-center justify-between text-xs text-amber-300 font-mono shrink-0 shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+            <span>
+              <strong>Live TRACE Engine Offline (http://127.0.0.1:8000)</strong> — Running in client sandbox. Outputs are derived from your real uploaded records.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                const ok = await checkBackendHealth();
+                if (ok) loadCaseData(caseId);
+              }}
+              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition text-[11px]"
+            >
+              Retry Server
+            </button>
+            <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+              <input
+                type="checkbox"
+                checked={isDemoMode}
+                onChange={(e) => {
+                  setDemoModeActive(e.target.checked);
+                  setIsDemoMode(e.target.checked);
+                  loadCaseData(caseId);
+                }}
+                className="rounded border-slate-600 bg-slate-800 text-cyan-500"
+              />
+              <span>Demo Fallback Mode</span>
+            </label>
+          </div>
+        </div>
+      )}
       {/* Mission Briefing Landing Portal */}
       {currentTab === 'portal' && (
         <LandingPortal
@@ -628,61 +666,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Predictive Threat Forecast & Next-Move Simulation Tab */}
-      {currentTab === 'forecast' && (
-        <div className="h-full">
-          <ErrorBoundary fallbackTitle="Predictive Threat Forecaster Intercept">
-            <ThreatForecastConsole
-              caseId={caseId}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
 
-      {/* Multi-Case Cross-Syndicate Umbrella Fusion Tab */}
-      {currentTab === 'fusion' && (
-        <div className="h-full">
-          <ErrorBoundary fallbackTitle="Cross-Syndicate Fusion Matrix Intercept">
-            <CrossSyndicateFusion
-              onSelectCase={(cid) => {
-                setCaseId(cid);
-                setCurrentTab('workspace');
-              }}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
-
-      {/* Machine Learning & Prediction Lab Tab */}
-      {currentTab === 'ml_lab' && (
-        <div className="h-full">
-          <ErrorBoundary fallbackTitle="Graph Neural & ML Model Lab Intercept">
-            <MLModelInspector
-              caseId={caseId}
-              onFocusNode={(nid) => {
-                const node = graphData.nodes.find(n => n.id === nid);
-                if (node) setSelectedNode(node);
-                setCurrentTab('workspace');
-              }}
-              onApplyHighlight={handleApplyHighlight}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
-
-      {/* 4D Tactical Mission Timeline Replay Tab */}
-      {currentTab === 'replay' && (
-        <div className="h-full">
-          <ErrorBoundary fallbackTitle="Mission Replay Simulator Intercept">
-            <MissionReplayPlayer
-              caseId={caseId}
-              graphData={graphData}
-              onApplyHighlight={handleApplyHighlight}
-              onSelectNode={setSelectedNode}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
 
       {/* Forensic Chain-of-Custody Ledger Tab */}
       {currentTab === 'ledger' && (
@@ -722,12 +706,6 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Executive Audio Briefing Modal */}
-      <AudioBriefingModal
-        caseId={caseId}
-        isOpen={isAudioBriefingOpen}
-        onClose={() => setIsAudioBriefingOpen(false)}
-      />
 
       {/* Case Management Hub Modal */}
       <CaseManagerModal
