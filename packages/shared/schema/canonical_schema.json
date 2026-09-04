@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canonical Criminal Network Analysis Schema",
+  "description": "Taxonomy and provenance specifications for nodes and edges in the Antigravity Intelligence System",
+  "node_types": [
+    "PERSON",
+    "PHONE",
+    "EMAIL",
+    "VEHICLE",
+    "LOCATION",
+    "ORGANIZATION",
+    "ACCOUNT",
+    "TRANSACTION",
+    "CASE",
+    "EVENT",
+    "DOCUMENT",
+    "SOCIAL_ACCOUNT"
+  ],
+  "relationship_types": [
+    "CALLED",
+    "CONTACTED",
+    "LOCATED_AT",
+    "TRAVELLED_TO",
+    "OWNED",
+    "REGISTERED_TO",
+    "TRANSFERRED_TO",
+    "WORKS_FOR",
+    "ASSOCIATED_WITH",
+    "RELATED_TO",
+    "PARTICIPATED_IN",
+    "MENTIONED_IN",
+    "PAID",
+    "RECEIVED",
+    "CONNECTED_TO"
+  ],
+  "node_schema": {
+    "type": "object",
+    "required": ["id", "type", "label"],
+    "properties": {
+      "id": { "type": "string" },
+      "type": { "type": "string" },
+      "label": { "type": "string" },
+      "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+      "attributes": { "type": "object" },
+      "created_at": { "type": "string", "format": "date-time" }
+    }
+  },
+  "edge_schema": {
+    "type": "object",
+    "required": ["source", "target", "type", "confidence", "source_document", "timestamp", "extraction_method"],
+    "properties": {
+      "id": { "type": "string" },
+      "source": { "type": "string" },
+      "target": { "type": "string" },
+      "type": { "type": "string" },
+      "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+      "source_document": { "type": "string" },
+      "timestamp": { "type": "string" },
+      "extraction_method": { "type": "string" },
+      "evidence": { "type": "string" },
+      "attributes": { "type": "object" }
+    }
+  }
+}

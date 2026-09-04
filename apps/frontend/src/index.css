@@ -1,0 +1,318 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* ─── Base ─────────────────────────────────────────── */
+html, body, #root {
+  background-color: #06070A !important;
+  color: #F5F5F2 !important;
+  font-family: 'Inter', monospace, sans-serif;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Custom High-Visibility Scrollbars ─────────────────────────────── */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { 
+  background: rgba(10, 15, 25, 0.7); 
+  border-radius: 6px; 
+}
+::-webkit-scrollbar-thumb { 
+  background: rgba(30, 45, 65, 0.9); 
+  border-radius: 6px; 
+  border: 1px solid rgba(6, 182, 212, 0.25); 
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: rgba(6, 182, 212, 0.7); 
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.scrollbar-cyan::-webkit-scrollbar { width: 9px; height: 9px; }
+.scrollbar-cyan::-webkit-scrollbar-track { background: rgba(5, 10, 20, 0.6); border-radius: 6px; }
+.scrollbar-cyan::-webkit-scrollbar-thumb { 
+  background: rgba(6, 182, 212, 0.5); 
+  border-radius: 6px; 
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+.scrollbar-cyan::-webkit-scrollbar-thumb:hover { 
+  background: #06B6D4; 
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+}
+
+/* ─── Cytoscape Canvas Layers must be transparent to stack properly ───────────────── */
+.cytoscape-container [data-id^="layer"] {
+  background-color: transparent !important;
+}
+.cytoscape-container {
+  background-color: #06070A !important;
+}
+
+/* ─── 3D Perspective Root ───────────────────────────── */
+#root {
+  position: relative;
+  z-index: 1;
+  perspective: 1800px;
+  perspective-origin: 50% 40%;
+}
+
+/* ─── Card 3D Hover Lift ─────────────────────────────── */
+.card-3d {
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 0.35s ease;
+  will-change: transform;
+}
+.card-3d:hover {
+  transform: perspective(900px) rotateX(-1.5deg) rotateY(0.5deg) translateZ(10px);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(6, 182, 212, 0.08),
+    0 1px 0 rgba(6, 182, 212, 0.2) inset;
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+
+/* ─── Button 3D Press Effect ─────────────────────────── */
+.btn-3d {
+  transform: perspective(400px) translateZ(0px);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.12s ease,
+    background-color 0.2s ease;
+  position: relative;
+}
+.btn-3d::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-3d:hover::after { opacity: 1; }
+.btn-3d:hover {
+  transform: perspective(400px) translateZ(6px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 16px rgba(6,182,212,0.15);
+}
+.btn-3d:active {
+  transform: perspective(400px) translateZ(-2px) scale(0.96);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.06s ease;
+}
+
+/* ─── Panel Depth (subtle tilt on panels) ───────────── */
+.panel-depth {
+  transform-style: preserve-3d;
+  transform: perspective(1200px) rotateX(0deg);
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.panel-depth:hover {
+  transform: perspective(1200px) rotateX(-0.6deg) translateY(-1px);
+}
+
+/* ─── Glassmorphism Panel ───────────────────────────── */
+.glass {
+  background: rgba(8, 10, 15, 0.75);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.glass-cyan {
+  background: rgba(6, 182, 212, 0.04);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  box-shadow: 0 0 40px rgba(6, 182, 212, 0.06), inset 0 1px 0 rgba(6, 182, 212, 0.1);
+}
+.glass-emerald {
+  background: rgba(16, 185, 129, 0.04);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.06), inset 0 1px 0 rgba(16, 185, 129, 0.1);
+}
+
+/* ─── Neon Glow Text ────────────────────────────────── */
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.4);
+}
+.text-glow-emerald {
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.8), 0 0 30px rgba(0, 255, 65, 0.4);
+}
+.text-glow-red {
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.8), 0 0 30px rgba(255, 51, 51, 0.4);
+}
+.text-glow-magenta {
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.4);
+}
+
+/* ─── Neon Border Glow ──────────────────────────────── */
+.border-glow-cyan {
+  box-shadow: 0 0 0 1px rgba(0, 255, 255, 0.4), 0 0 20px rgba(0, 255, 255, 0.15);
+}
+.border-glow-emerald {
+  box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.4), 0 0 20px rgba(0, 255, 65, 0.15);
+}
+.border-glow-red {
+  box-shadow: 0 0 0 1px rgba(255, 51, 51, 0.4), 0 0 20px rgba(255, 51, 51, 0.15);
+}
+
+/* ─── HUD Corner Brackets ───────────────────────────── */
+.hud-corners {
+  position: relative;
+}
+.hud-corners::before,
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(0, 255, 255, 0.5);
+  pointer-events: none;
+}
+.hud-corners::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+.hud-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* ─── Glitch Effect ─────────────────────────────────── */
+@keyframes glitch {
+  0%   { transform: skew(0deg); }
+  20%  { transform: skew(-2deg) translateX(-2px); }
+  40%  { transform: skew(1.5deg) translateX(2px); }
+  60%  { transform: skew(-1deg) translateX(-1px); }
+  80%  { transform: skew(0.5deg); }
+  100% { transform: skew(0deg); }
+}
+.glitch-on-hover:hover {
+  animation: glitch 0.3s ease forwards;
+}
+
+/* ─── HUD Scan Line ─────────────────────────────────── */
+.hud-scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 255, 255, 0.03) 50%,
+    transparent 100%
+  );
+  height: 40px;
+  animation: hud-scan 3s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes hud-scan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(calc(100% + 40px)); }
+}
+
+/* ─── Neon Pulse Badge ──────────────────────────────── */
+.neon-badge {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+/* ─── Scanline overlay (optional cinematic effect) ─── */
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.03) 3px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Holographic shimmer ───────────────────────────── */
+@keyframes holo-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.holo {
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(6,182,212,0.15) 40%,
+    rgba(16,185,129,0.1) 50%,
+    rgba(139,92,246,0.15) 60%,
+    transparent 80%
+  );
+  background-size: 200% auto;
+  animation: holo-shimmer 3s linear infinite;
+}
+
+/* ─── 3D Floating badge ─────────────────────────────── */
+@keyframes float3d {
+  0%, 100% { transform: perspective(600px) translateZ(0px) translateY(0px); }
+  50%       { transform: perspective(600px) translateZ(8px) translateY(-3px); }
+}
+.float-3d {
+  animation: float3d 3s ease-in-out infinite;
+}
+
+/* ─── Pulse ring ───────────────────────────────────── */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(6,182,212,0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(6,182,212,0); }
+  100% { box-shadow: 0 0 0 0 rgba(6,182,212,0); }
+}
+.pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+
+/* ─── Tab transition helper ─────────────────────────── */
+.tab-content-enter {
+  opacity: 0;
+  transform: perspective(800px) rotateX(4deg) translateY(16px);
+}
+.tab-content-enter-active {
+  opacity: 1;
+  transform: perspective(800px) rotateX(0deg) translateY(0px);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ─── AI response card slide-in ─────────────────────── */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateX(6deg) translateY(12px) translateZ(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0deg) translateY(0px) translateZ(0px);
+  }
+}
+
+/* ─── Spin override ──────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
