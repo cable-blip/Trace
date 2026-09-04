@@ -19,8 +19,11 @@ from app.repositories.sqlite_repo import SQLiteRepository
 class TestExhaustiveEndpoints(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        from main import preload_synthetic_case
+        preload_synthetic_case()
         cls.client = TestClient(app)
         cls.test_case_id = "CASE-TEST-INT"
+
 
     def test_01_health_and_root_endpoints(self):
         """Test root and health status endpoints."""

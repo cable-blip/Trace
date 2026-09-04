@@ -82,6 +82,10 @@ class InterrogationEngine:
             "role": role,
             "demeanor": demeanor,
             "dialogue": dialogue,
+            "response": dialogue,
+            "stress_level": new_stress,
+            "heart_rate_bpm": heart_rate,
+            "confession_probability": round(new_stress / 100.0, 2),
             "biometrics": {
                 "stress_level": new_stress,
                 "heart_rate_bpm": heart_rate,

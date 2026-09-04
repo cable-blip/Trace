@@ -18,11 +18,11 @@ import { AlertPanel } from './components/investigation/AlertPanel';
 import { CulpritProfilerPanel } from './components/investigation/CulpritProfilerPanel';
 import { LiveStreamFeed } from './components/investigation/LiveStreamFeed';
 import { GeoSpatialMapPanel } from './components/investigation/GeoSpatialMapPanel';
-import { WiretapAudioInspector } from './components/investigation/WiretapAudioInspector';
+import { AudioEvidenceTranscriptPanel } from './components/investigation/AudioEvidenceTranscriptPanel';
 import { WarrantGeneratorModal } from './components/investigation/WarrantGeneratorModal';
-import { SuspectInterrogationSimulator } from './components/investigation/SuspectInterrogationSimulator';
+import { InterviewPreparationPanel } from './components/investigation/InterviewPreparationPanel';
 import { EvidenceLedger } from './components/evidence/EvidenceLedger';
-import { PoliceSolutionsPanel } from './components/investigation/PoliceSolutionsPanel';
+import { InvestigativePriorityPanel } from './components/investigation/InvestigativePriorityPanel';
 import { LandingPortal } from './components/layout/LandingPortal';
 import { CaseManagerModal } from './components/layout/CaseManagerModal';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
@@ -104,40 +104,59 @@ export const App: React.FC = () => {
   };
 
   const loadCaseData = async (cid: string = caseId) => {
+    const demoActive = isDemoModeActive();
     try {
       const gData = await fetchGraph(cid);
-      if (gData && Array.isArray(gData.nodes)) {
-        if (gData.nodes.length > 0) {
-          setGraphData(gData);
-        } else if (OFFLINE_GRAPHS[cid]) {
-          setGraphData(OFFLINE_GRAPHS[cid]);
-        } else {
-          setGraphData({ nodes: [], edges: [] });
-        }
-      } else if (OFFLINE_GRAPHS[cid]) {
+      if (gData && Array.isArray(gData.nodes) && gData.nodes.length > 0) {
+        setGraphData(gData);
+      } else if (demoActive && OFFLINE_GRAPHS[cid]) {
+        setGraphData(OFFLINE_GRAPHS[cid]);
+      } else {
+        setGraphData(gData || { nodes: [], edges: [] });
+      }
+    } catch (err) {
+      console.error("Failed to load graph data", err);
+      if (demoActive && OFFLINE_GRAPHS[cid]) {
         setGraphData(OFFLINE_GRAPHS[cid]);
       } else {
         setGraphData({ nodes: [], edges: [] });
       }
-    } catch (err) {
-      console.error("Failed to load graph data", err);
-      setGraphData(OFFLINE_GRAPHS[cid] || { nodes: [], edges: [] });
     }
 
     try {
       const aData = await fetchAnalytics(cid);
-      setAnalytics(aData || OFFLINE_ANALYTICS[cid] || OFFLINE_ANALYTICS['CASE-001']);
+      if (aData && aData.centrality) {
+        setAnalytics(aData);
+      } else if (demoActive && OFFLINE_ANALYTICS[cid]) {
+        setAnalytics(OFFLINE_ANALYTICS[cid]);
+      } else {
+        setAnalytics(null);
+      }
     } catch (err) {
-      console.error("Failed to load analytics, using offline metrics", err);
-      setAnalytics(OFFLINE_ANALYTICS[cid] || OFFLINE_ANALYTICS['CASE-001']);
+      console.error("Failed to load analytics", err);
+      if (demoActive && OFFLINE_ANALYTICS[cid]) {
+        setAnalytics(OFFLINE_ANALYTICS[cid]);
+      } else {
+        setAnalytics(null);
+      }
     }
 
     try {
       const commData = await fetchCommunities(cid);
-      setCommunities(commData || OFFLINE_ANALYTICS[cid]?.communities || OFFLINE_ANALYTICS['CASE-001'].communities);
+      if (commData && Array.isArray(commData)) {
+        setCommunities(commData);
+      } else if (demoActive && OFFLINE_ANALYTICS[cid]?.communities) {
+        setCommunities(OFFLINE_ANALYTICS[cid].communities);
+      } else {
+        setCommunities([]);
+      }
     } catch (err) {
       console.error("Failed to load communities", err);
-      setCommunities(OFFLINE_ANALYTICS[cid]?.communities || OFFLINE_ANALYTICS['CASE-001'].communities);
+      if (demoActive && OFFLINE_ANALYTICS[cid]?.communities) {
+        setCommunities(OFFLINE_ANALYTICS[cid].communities);
+      } else {
+        setCommunities([]);
+      }
     }
 
     try {
@@ -253,6 +272,7 @@ export const App: React.FC = () => {
       onWarrantClick={() => setIsWarrantOpen(true)}
       onOpenCaseManager={() => setIsCaseManagerOpen(true)}
       onDeleteActiveCase={handleDeleteCase}
+      runtimeMode={isDemoMode ? 'demo' : isBackendHealthy ? 'live' : 'offline'}
     >
       {/* Live Engine Status Warning Banner */}
       {!isBackendHealthy && (
@@ -289,6 +309,31 @@ export const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Persistent Synthetic Demo Data Warning Banner */}
+      {isDemoMode && (
+        <div className="bg-amber-950/80 border-b border-amber-500/50 px-4 py-2 flex items-center justify-between text-xs text-amber-200 font-mono shrink-0 shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 text-[10px]">
+              SYNTHETIC DEMO DATA
+            </span>
+            <span>
+              Synthetic demo mode active. Graphs and intelligence entities are pre-packaged simulations for demonstration purposes only.
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              setDemoModeActive(false);
+              setIsDemoMode(false);
+              loadCaseData(caseId);
+            }}
+            className="px-2.5 py-1 rounded bg-amber-500/30 hover:bg-amber-500/40 border border-amber-500/50 text-amber-100 transition text-[11px] font-bold"
+          >
+            Switch to Live Case Mode
+          </button>
+        </div>
+      )}
+
       {/* Mission Briefing Landing Portal */}
       {currentTab === 'portal' && (
         <LandingPortal
@@ -350,7 +395,15 @@ export const App: React.FC = () => {
                       onApplyHighlight={handleApplyHighlight}
                       onViewEvidence={setViewingEvidenceId}
                     />
-                    <WiretapAudioInspector />
+                    <AudioEvidenceTranscriptPanel
+                      onSelectEntity={(entityName) => {
+                        const node = graphData.nodes.find(n => 
+                          n.label.toLowerCase().includes(entityName.toLowerCase()) || 
+                          n.id.toLowerCase().includes(entityName.toLowerCase())
+                        );
+                        if (node) setSelectedNode(node);
+                      }}
+                    />
                   </div>
                 )}
                 {leftSubTab === 'path' && (
@@ -512,14 +565,19 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Police Tactical Solutions & Enforcement Tab */}
-      {currentTab === 'police_solutions' && (
+      {/* Priority Assessment & Tactical Solutions Tab */}
+      {(currentTab === 'investigative_priorities' || currentTab === 'police_solutions') && (
         <div className="h-full">
-          <ErrorBoundary fallbackTitle="Police Tactical Solutions Engine Intercept">
-            <PoliceSolutionsPanel
+          <ErrorBoundary fallbackTitle="Investigative Priority Engine Intercept">
+            <InvestigativePriorityPanel
               caseId={caseId}
               onOpenWarrantModal={() => setIsWarrantOpen(true)}
               onOpenIngestionModal={() => setIsIngestionOpen(true)}
+              onNavigateToInterview={(personId) => {
+                const node = graphData.nodes.find(n => n.id === personId || n.label.toLowerCase() === personId.toLowerCase());
+                if (node) setSelectedNode(node);
+                setCurrentTab('interview_prep');
+              }}
             />
           </ErrorBoundary>
         </div>
@@ -654,13 +712,14 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Autonomous AI Suspect Interrogation Room Tab */}
-      {currentTab === 'interrogation' && (
+      {/* Evidence-Led Interview Preparation Room Tab */}
+      {(currentTab === 'interview_prep' || currentTab === 'interrogation') && (
         <div className="h-full">
-          <ErrorBoundary fallbackTitle="AI Interrogation Chamber Intercept">
-            <SuspectInterrogationSimulator
+          <ErrorBoundary fallbackTitle="Interview Preparation Chamber Intercept">
+            <InterviewPreparationPanel
               caseId={caseId}
               suspects={graphData.nodes}
+              initialSelectedId={selectedNode?.type === 'PERSON' ? selectedNode.id : undefined}
             />
           </ErrorBoundary>
         </div>

@@ -152,10 +152,10 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({ cases, onSelectCas
 
             <div className="p-3.5 rounded-xl border border-white/10 bg-black/60 space-y-1.5 hover:border-red-400/40 transition">
               <div className="text-[10px] text-slate-400 uppercase flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-red-400" /> Bayesian Matrix
+                <Award className="w-4 h-4 text-red-400" /> Priority Matrix
               </div>
-              <div className="text-red-300 font-bold text-xs">DNA & ALIBI PROFILER</div>
-              <span className="text-[10px] text-slate-400 block font-sans">Log-odds guilt calibration</span>
+              <div className="text-red-300 font-bold text-xs">FORENSIC & ALIBI PROFILER</div>
+              <span className="text-[10px] text-slate-400 block font-sans">Calibrated evidence weight & priority scoring</span>
             </div>
           </div>
         </div>
