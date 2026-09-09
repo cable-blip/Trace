@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Scale, AlertTriangle, FileText, CheckCircle2,
-  ArrowRight, RefreshCw, Lock, Database, ShieldAlert,
+  RefreshCw, Lock, Database, ShieldAlert,
   Search, ExternalLink, HelpCircle, Network
 } from 'lucide-react';
 import { fetchPoliceSolutions } from '../../services/api';
@@ -10,14 +10,12 @@ interface InvestigativePriorityPanelProps {
   caseId: string;
   onOpenWarrantModal?: () => void;
   onOpenIngestionModal?: () => void;
-  onNavigateToInterview?: (personId: string) => void;
 }
 
 export const InvestigativePriorityPanel: React.FC<InvestigativePriorityPanelProps> = ({
   caseId,
   onOpenWarrantModal,
-  onOpenIngestionModal,
-  onNavigateToInterview
+  onOpenIngestionModal
 }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -232,17 +230,6 @@ export const InvestigativePriorityPanel: React.FC<InvestigativePriorityPanelProp
                     <p className="text-xs text-cyan-400 font-mono mt-0.5">
                       {selectedTarget.role_hypothesis || selectedTarget.operational_role}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {onNavigateToInterview && (
-                      <button
-                        onClick={() => onNavigateToInterview(selectedTarget.person_id || selectedTarget.target_id)}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold transition flex items-center gap-1"
-                      >
-                        <span>Prepare Interview</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
                   </div>
                 </div>
 

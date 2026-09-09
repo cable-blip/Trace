@@ -60,12 +60,50 @@ export interface PoliceSolutionsReport {
 export class ClientIntelligenceEngine {
   private static STORAGE_PREFIX = 'trace_vault_';
 
+  public static getExpungedCaseIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_PREFIX + 'expunged_cases');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return new Set<string>(parsed);
+      }
+    } catch (e) {
+      console.warn('Storage read error for expunged cases', e);
+    }
+    return new Set<string>();
+  }
+
+  public static markCaseExpunged(caseId: string): void {
+    try {
+      const expunged = this.getExpungedCaseIds();
+      expunged.add(caseId);
+      localStorage.setItem(this.STORAGE_PREFIX + 'expunged_cases', JSON.stringify(Array.from(expunged)));
+    } catch (e) {
+      console.warn('Storage error marking expunged case', e);
+    }
+  }
+
+  public static unmarkCaseExpunged(caseId: string): void {
+    try {
+      const expunged = this.getExpungedCaseIds();
+      if (expunged.has(caseId)) {
+        expunged.delete(caseId);
+        localStorage.setItem(this.STORAGE_PREFIX + 'expunged_cases', JSON.stringify(Array.from(expunged)));
+      }
+    } catch (e) {
+      console.warn('Storage error unmarking expunged case', e);
+    }
+  }
+
   public static getSavedCases(): Case[] {
     try {
+      const expunged = this.getExpungedCaseIds();
       const raw = localStorage.getItem(this.STORAGE_PREFIX + 'cases');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(c => !expunged.has(c.id));
+        }
       }
     } catch (e) {
       console.warn('Storage read error', e);
@@ -75,6 +113,7 @@ export class ClientIntelligenceEngine {
 
   public static saveCase(newCase: Case): void {
     try {
+      this.unmarkCaseExpunged(newCase.id);
       const existing = this.getSavedCases();
       const filtered = existing.filter(c => c.id !== newCase.id);
       localStorage.setItem(this.STORAGE_PREFIX + 'cases', JSON.stringify([newCase, ...filtered]));
@@ -85,17 +124,21 @@ export class ClientIntelligenceEngine {
 
   public static deleteCase(caseId: string): void {
     try {
+      this.markCaseExpunged(caseId);
       const existing = this.getSavedCases();
       const updated = existing.filter(c => c.id !== caseId);
       localStorage.setItem(this.STORAGE_PREFIX + 'cases', JSON.stringify(updated));
       localStorage.removeItem(this.STORAGE_PREFIX + 'graph_' + caseId);
       localStorage.removeItem(this.STORAGE_PREFIX + 'solutions_' + caseId);
+      localStorage.removeItem(this.STORAGE_PREFIX + 'analytics_' + caseId);
+      localStorage.removeItem(this.STORAGE_PREFIX + 'entities_' + caseId);
     } catch (e) {
       console.warn('Storage delete error', e);
     }
   }
 
   public static getCaseGraph(caseId: string): GraphData | null {
+    if (this.getExpungedCaseIds().has(caseId)) return null;
     try {
       const raw = localStorage.getItem(this.STORAGE_PREFIX + 'graph_' + caseId);
       if (raw) return JSON.parse(raw);
@@ -504,5 +547,430 @@ export class ClientIntelligenceEngine {
       ],
       tactical_overview: 'Analyzed ' + nodes.length + ' entities and ' + edges.length + ' connections. Identified ' + hvtTargets.length + ' targets. Immediate neutralization of ' + bottlenecks.length + ' bottleneck node(s) will sever syndicate operations.'
     };
+  }
+
+  public static getCaseAudioTranscripts(caseId: string, graphData?: GraphData): any {
+    const defaultTranscripts: Record<string, any> = {
+      'CASE-001': {
+        case_id: 'CASE-001',
+        statutory_notice: 'Section 65B Indian Evidence Act / Section 63 BSA Certification: Electronic wiretap and audio recordings preserved with cryptographic SHA-256 hash provenance.',
+        recordings: [
+          {
+            recording_id: 'REC-WIRETAP-NX-01',
+            title: 'Nhava Sheva Port Terminal 01 - Tactical Wiretap Intercept',
+            audio_file: 'wiretap_intercept_terminal_01.wav',
+            duration_seconds: 28.5,
+            sha256_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            recorded_at: '2026-05-10T02:15:00Z',
+            segments: [
+              {
+                segment_id: 'SEG-001',
+                start_time: 2.0,
+                end_time: 7.0,
+                speaker: 'Devendra Sharma',
+                text: 'Victor, the Nhava Sheva container shipment is arriving at 03:00 AM. Is Tariq ready at Warehouse 17?',
+                entities: ['Nhava Sheva', 'Tariq Ahmed', 'Warehouse 17'],
+                confidence: 0.96,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-002',
+                start_time: 7.5,
+                end_time: 14.0,
+                speaker: 'Victor Vance',
+                text: 'Tariq has 4 transport vehicles standby. Ramesh Kumar is driving the lead transport MH-04-AB-1234.',
+                entities: ['Tariq Ahmed', 'Ramesh Kumar', 'MH-04-AB-1234'],
+                confidence: 0.94,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-003',
+                start_time: 14.5,
+                end_time: 21.0,
+                speaker: 'Devendra Sharma',
+                text: 'Ensure the bank transfer of 65 Lakhs clears to account ACC-HAWALA-8899 before the terminal gates open.',
+                entities: ['ACC-HAWALA-8899', 'Apex Global Logistics'],
+                confidence: 0.97,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-004',
+                start_time: 21.5,
+                end_time: 28.0,
+                speaker: 'Victor Vance',
+                text: 'Understood. The port customs agent is cleared. Nobody touches container consignment MUK-8891.',
+                entities: ['MUK-8891', 'Nhava Sheva Port'],
+                confidence: 0.95,
+                is_edited: false
+              }
+            ]
+          }
+        ]
+      },
+      'CASE-002': {
+        case_id: 'CASE-002',
+        statutory_notice: 'Section 65B Indian Evidence Act / Section 63 BSA Certification: Lawful cyber surveillance and intercepted VoIP session preserved with SHA-256 certificate.',
+        recordings: [
+          {
+            recording_id: 'REC-WIRETAP-BO-02',
+            title: 'Bengaluru C2 Infrastructure - VoIP Tactical Intercept',
+            audio_file: 'voip_c2_server_vault09.wav',
+            duration_seconds: 32.0,
+            sha256_hash: 'a4f891b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abc',
+            recorded_at: '2026-02-14T03:45:00Z',
+            segments: [
+              {
+                segment_id: 'SEG-101',
+                start_time: 2.0,
+                end_time: 8.5,
+                speaker: 'Karan Mehra',
+                text: 'Ananya, the banking trojan payload executed on State Commercial Bank gateway. Session tokens captured.',
+                entities: ['Karan Mehra', 'Server Vault 09', 'Bengaluru'],
+                confidence: 0.97,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-102',
+                start_time: 9.0,
+                end_time: 16.0,
+                speaker: 'Ananya Roy',
+                text: 'Mule accounts in Bengaluru are primed. We must funnel 42 Lakhs into XMR-WALLET-8844 before central anti-fraud triggers lockouts.',
+                entities: ['Ananya Roy', 'XMR-WALLET-8844'],
+                confidence: 0.95,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-103',
+                start_time: 16.5,
+                end_time: 24.0,
+                speaker: 'Karan Mehra',
+                text: 'Server Vault 09 has root access established. Vikram Malhotra is routing through decentralized onion mix nodes.',
+                entities: ['Server Vault 09', 'Vikram Malhotra'],
+                confidence: 0.96,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-104',
+                start_time: 24.5,
+                end_time: 31.5,
+                speaker: 'Ananya Roy',
+                text: 'Confirmed. The privacy coin swap is verified. Wipe all SSH access logs from the secondary VPS immediately.',
+                entities: ['Server Vault 09', 'Karan Mehra'],
+                confidence: 0.98,
+                is_edited: false
+              }
+            ]
+          }
+        ]
+      },
+      'CASE-003': {
+        case_id: 'CASE-003',
+        statutory_notice: 'Section 65B Indian Evidence Act / Section 63 BSA Certification: VHF Coastal Radio Scramble intercept preserved with SHA-256 cryptographic chain of custody.',
+        recordings: [
+          {
+            recording_id: 'REC-WIRETAP-VL-03',
+            title: 'Kandla Maritime Berth - VHF Channel 16 Radio Intercept',
+            audio_file: 'vhf_maritime_berth04_intercept.wav',
+            duration_seconds: 30.0,
+            sha256_hash: 'c890123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd',
+            recorded_at: '2026-03-01T23:10:00Z',
+            segments: [
+              {
+                segment_id: 'SEG-201',
+                start_time: 2.0,
+                end_time: 8.0,
+                speaker: 'Capt. Vladislav',
+                text: 'Salim, MV Sea Rover has killed its AIS transponder 14 miles west of Kandla Deep Sea Berth 04.',
+                entities: ['Capt. Vladislav', 'Kandla Deep Sea Berth 04'],
+                confidence: 0.98,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-202',
+                start_time: 8.5,
+                end_time: 15.5,
+                speaker: 'Salim Ghouse',
+                text: 'Pilot launch boat is on course. Port customs night supervisor is cleared with the agreed deposit.',
+                entities: ['Salim Ghouse', 'Kandla Port'],
+                confidence: 0.96,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-203',
+                start_time: 16.0,
+                end_time: 22.5,
+                speaker: 'Capt. Vladislav',
+                text: 'Coast Guard radar patrol detected 8 miles north. Shift the surplus crate discharge to the auxiliary dock.',
+                entities: ['Capt. Vladislav'],
+                confidence: 0.94,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-204',
+                start_time: 23.0,
+                end_time: 29.5,
+                speaker: 'Salim Ghouse',
+                text: 'Cranes and trucks ready at Berth 04. No manifest inspection will take place tonight.',
+                entities: ['Salim Ghouse', 'Kandla Deep Sea Berth 04'],
+                confidence: 0.97,
+                is_edited: false
+              }
+            ]
+          }
+        ]
+      },
+      'CASE-004': {
+        case_id: 'CASE-004',
+        statutory_notice: 'Section 65B Indian Evidence Act / Section 63 BSA Certification: Encrypted messenger voice decrypt preserved under forensic cyber warrant.',
+        recordings: [
+          {
+            recording_id: 'REC-WIRETAP-DG-04',
+            title: 'Goa Coastal Cell - Secure Messenger Voice Clip Decrypt',
+            audio_file: 'signal_voice_coastal_goa.wav',
+            duration_seconds: 27.0,
+            sha256_hash: 'd90123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde',
+            recorded_at: '2026-03-18T21:40:00Z',
+            segments: [
+              {
+                segment_id: 'SEG-301',
+                start_time: 2.0,
+                end_time: 7.5,
+                speaker: "Operator 'Phantom_404'",
+                text: 'Neha, package 14 synthetic grade crystal sealed in waterproof container. GPS coordinates transmitted via PGP.',
+                entities: ["Operator 'Phantom_404'", 'Neha Singhania'],
+                confidence: 0.97,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-302',
+                start_time: 8.0,
+                end_time: 14.5,
+                speaker: 'Neha Singhania',
+                text: 'Approaching Anjuna Beach Safehouse perimeter. North cove rocks are completely dark, no police patrol in sight.',
+                entities: ['Anjuna Beach Safehouse, Goa', 'Neha Singhania'],
+                confidence: 0.95,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-303',
+                start_time: 15.0,
+                end_time: 21.0,
+                speaker: "Operator 'Phantom_404'",
+                text: 'Leave your primary smartphone behind. Use the temporary burner only. Transfer of 18 Lakhs is confirmed.',
+                entities: ["Operator 'Phantom_404'"],
+                confidence: 0.96,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-304',
+                start_time: 21.5,
+                end_time: 26.5,
+                speaker: 'Neha Singhania',
+                text: 'Dead-drop completed under north rock shelf. 4.2 kg secured. Heading inland towards Panaji.',
+                entities: ['Anjuna Beach Safehouse, Goa', 'Neha Singhania'],
+                confidence: 0.98,
+                is_edited: false
+              }
+            ]
+          }
+        ]
+      },
+      'CASE-005': {
+        case_id: 'CASE-005',
+        statutory_notice: 'Section 65B Indian Evidence Act / Section 63 BSA Certification: Air Courier Surveillance & customs terminal wiretap preserved under special economic offences warrant.',
+        recordings: [
+          {
+            recording_id: 'REC-WIRETAP-GF-05',
+            title: 'CSMIA Terminal 2 - Tactical Audio Intercept',
+            audio_file: 'customs_air_transit_intercept.wav',
+            duration_seconds: 29.0,
+            sha256_hash: 'e0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+            recorded_at: '2026-04-05T18:20:00Z',
+            segments: [
+              {
+                segment_id: 'SEG-401',
+                start_time: 2.0,
+                end_time: 8.0,
+                speaker: 'Sheikh Mansoor Al-Falasi',
+                text: 'Fatima, Emirates flight EK-504 has landed at Chhatrapati Shivaji International T2. 8.5 kg gold paste in baggage frame.',
+                entities: ['Sheikh Mansoor Al-Falasi', 'Fatima Noor', 'Chhatrapati Shivaji Maharaj Airport T2'],
+                confidence: 0.99,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-402',
+                start_time: 8.5,
+                end_time: 15.0,
+                speaker: 'Fatima Noor',
+                text: 'Exiting aircraft now Sheikh. Green channel ground liaison has confirmed zero physical screening at Gate 6.',
+                entities: ['Fatima Noor', 'Chhatrapati Shivaji Maharaj Airport T2'],
+                confidence: 0.97,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-403',
+                start_time: 15.5,
+                end_time: 22.0,
+                speaker: 'Sheikh Mansoor Al-Falasi',
+                text: 'Proceed immediately by private taxi to Zaveri Bazaar Gold Refinery. Sanjay Zaveri is awaiting the bullion melts.',
+                entities: ['Sheikh Mansoor Al-Falasi', 'Zaveri Bazaar Gold Refinery'],
+                confidence: 0.98,
+                is_edited: false
+              },
+              {
+                segment_id: 'SEG-404',
+                start_time: 22.5,
+                end_time: 28.5,
+                speaker: 'Fatima Noor',
+                text: 'Luggage collected without customs inspection. En route to Zaveri Bazaar now.',
+                entities: ['Fatima Noor', 'Zaveri Bazaar Gold Refinery'],
+                confidence: 0.99,
+                is_edited: false
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    if (defaultTranscripts[caseId]) {
+      return defaultTranscripts[caseId];
+    }
+
+    // Dynamic generation from graphData
+    const graph = graphData || this.getCaseGraph(caseId) || { nodes: [], edges: [] };
+    const persons = graph.nodes.filter(n => n.type === 'PERSON');
+    const accounts = graph.nodes.filter(n => n.type === 'ACCOUNT');
+    const locations = graph.nodes.filter(n => n.type === 'LOCATION');
+    const vehicles = graph.nodes.filter(n => n.type === 'VEHICLE');
+
+    const p1 = persons[0]?.label || 'Primary Operative';
+    const p2 = persons[1]?.label || (persons.length > 0 ? 'Secondary Associate' : 'Field Courier');
+    const acc = accounts[0]?.label || 'Settlement Account';
+    const loc = locations[0]?.label || 'Consignment Facility';
+    const veh = vehicles[0]?.label || 'Transport Unit';
+
+    return {
+      case_id: caseId,
+      statutory_notice: `Section 65B Indian Evidence Act / Section 63 BSA Certification: Electronic wiretap and audio recordings preserved with cryptographic SHA-256 hash provenance for Case ${caseId}.`,
+      recordings: [
+        {
+          recording_id: `REC-WIRETAP-${caseId.toUpperCase().slice(0, 10)}-01`,
+          title: `Tactical Wiretap Audio Intercept - ${caseId}`,
+          audio_file: `wiretap_${caseId.toLowerCase()}_intercept.wav`,
+          duration_seconds: 28.0,
+          sha256_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b' + Math.abs(caseId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)).toString().padStart(6, '0'),
+          recorded_at: new Date().toISOString(),
+          segments: [
+            {
+              segment_id: 'SEG-001',
+              start_time: 2.0,
+              end_time: 7.5,
+              speaker: p1,
+              text: `Has the consignment logistics been confirmed at ${loc}? We cannot afford surveillance interference.`,
+              entities: [p1, loc],
+              confidence: 0.95,
+              is_edited: false
+            },
+            {
+              segment_id: 'SEG-002',
+              start_time: 8.0,
+              end_time: 14.5,
+              speaker: p2,
+              text: `Yes, transport ${veh} is en route. Contact has cleared local checkpoints.`,
+              entities: [p2, veh],
+              confidence: 0.93,
+              is_edited: false
+            },
+            {
+              segment_id: 'SEG-003',
+              start_time: 15.0,
+              end_time: 21.0,
+              speaker: p1,
+              text: `Verify the financial routing through ${acc} prior to cargo clearance.`,
+              entities: [acc],
+              confidence: 0.96,
+              is_edited: false
+            },
+            {
+              segment_id: 'SEG-004',
+              start_time: 21.5,
+              end_time: 27.5,
+              speaker: p2,
+              text: 'All accounts reconciled. Perimeter is secure.',
+              entities: [loc],
+              confidence: 0.94,
+              is_edited: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  public static generateSuggestedQuestions(caseId: string, graphData?: GraphData): Array<{ category: string; question: string }> {
+    const graph = graphData || this.getCaseGraph(caseId) || { nodes: [], edges: [] };
+    const nodes = graph.nodes;
+    if (nodes.length === 0) {
+      return [
+        { category: 'INGESTION', question: 'What intelligence files are required to construct this case graph?' },
+        { category: 'STATUS', question: 'What is the current status of case ingestion?' }
+      ];
+    }
+
+    const persons = nodes.filter(n => n.type === 'PERSON');
+    const accounts = nodes.filter(n => n.type === 'ACCOUNT');
+    const locations = nodes.filter(n => n.type === 'LOCATION');
+    const phones = nodes.filter(n => n.type === 'PHONE');
+
+    const queries: Array<{ category: string; question: string }> = [];
+
+    if (persons.length >= 2) {
+      queries.push({
+        category: 'CONNECTION',
+        question: `How is ${persons[0].label} connected to ${persons[1].label}?`
+      });
+    } else if (persons.length === 1) {
+      queries.push({
+        category: 'PROFILE',
+        question: `What is the network profile and alibi for ${persons[0].label}?`
+      });
+    }
+
+    queries.push({
+      category: 'KEY_PLAYERS',
+      question: 'Who are the most connected key players in this network?'
+    });
+
+    if (accounts.length > 0) {
+      queries.push({
+        category: 'FINANCIAL',
+        question: `What financial transactions route through ${accounts[0].label}?`
+      });
+    } else if (locations.length > 0) {
+      queries.push({
+        category: 'LOCATION',
+        question: `What operational activity is centered around ${locations[0].label}?`
+      });
+    }
+
+    queries.push({
+      category: 'BRIDGE',
+      question: 'Which person or entity connects the major network clusters?'
+    });
+
+    if (phones.length > 0) {
+      queries.push({
+        category: 'ANOMALIES',
+        question: 'What burner phones or communication anomalies exist in this network?'
+      });
+    } else {
+      queries.push({
+        category: 'ALERTS',
+        question: 'What critical threat alerts and operational vulnerabilities have been detected?'
+      });
+    }
+
+    return queries;
   }
 }

@@ -148,29 +148,6 @@ class InvestigativePriorityResponse(BaseModel):
         "All statutory recommendations require independent prosecutorial consultation."
     )
 
-class InterviewQuestionItem(BaseModel):
-    question_id: str
-    topic: str
-    question_text: str
-    evidence_citations: List[str] = Field(default_factory=list)
-    neutrality_rating: str = "NON_LEADING"
-
-class InterviewPlanResponse(BaseModel):
-    case_id: str
-    person_id: str
-    person_name: str
-    role_hypothesis: str
-    interview_objectives: List[str] = Field(default_factory=list)
-    non_leading_questions: List[InterviewQuestionItem] = Field(default_factory=list)
-    alibi_verification_points: List[str] = Field(default_factory=list)
-    statutory_compliance_notice: str = (
-        "Mandatory non-coercion compliance under Section 161 CrPC / Section 180 BNSS. "
-        "Accused has right against self-incrimination (Art 20(3))."
-    )
-    non_coercion_notice: Optional[str] = (
-        "Mandatory non-coercion compliance under Section 161 CrPC / Section 180 BNSS. "
-        "The interviewee holds the constitutional right against self-incrimination (Article 20(3))."
-    )
 
 class AudioTranscriptSegment(BaseModel):
     segment_id: int

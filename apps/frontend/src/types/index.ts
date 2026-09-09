@@ -158,25 +158,6 @@ export interface InvestigativePriorityResponse {
   statutory_disclaimer: string;
 }
 
-export interface InterviewQuestionItem {
-  question_id: string;
-  topic: string;
-  question_text: string;
-  evidence_citations: string[];
-  neutrality_rating: string;
-}
-
-export interface InterviewPlanResponse {
-  case_id: string;
-  person_id: string;
-  person_name: string;
-  role_hypothesis: string;
-  interview_objectives: string[];
-  non_leading_questions: InterviewQuestionItem[];
-  alibi_verification_points: string[];
-  statutory_compliance_notice: string;
-}
-
 export interface AudioTranscriptSegment {
   segment_id: number;
   start_time_seconds: number;
