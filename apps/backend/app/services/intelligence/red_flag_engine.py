@@ -93,4 +93,29 @@ class RedFlagEngine:
                 "mitigation": "Deploy 24/7 real-time audio intercept alerts during midnight surveillance shifts."
             })
 
+        # 5. Isolation Forest Unsupervised Transaction Anomaly Detection
+        try:
+            from app.ml.anomaly_model import IsolationForestAnomalyDetector
+            tx_records = []
+            for e in graph_data.edges:
+                if any(k in e.type for k in ("TRANSFER", "PAID", "SENT_CRYPTO", "FINANCIAL")):
+                    amt = float(e.attributes.get("amount", 50000.0))
+                    hr = 12.0
+                    try:
+                        dt = datetime.fromisoformat(e.timestamp.replace("Z", "+00:00"))
+                        hr = float(dt.hour)
+                    except Exception:
+                        pass
+                    tx_records.append({
+                        "amount": amt,
+                        "hour": hr,
+                        "frequency": float(len(acc_transfers.get(e.source, [1]))),
+                        "target_entity": e.target
+                    })
+            if len(tx_records) >= 4:
+                ml_anomalies = IsolationForestAnomalyDetector.detect_anomalies(tx_records)
+                anomalies.extend(ml_anomalies)
+        except Exception:
+            pass
+
         return anomalies

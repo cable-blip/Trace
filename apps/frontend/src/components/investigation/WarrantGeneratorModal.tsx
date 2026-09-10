@@ -39,6 +39,14 @@ const WARRANT_TARGET_INTEL: Record<string, {
     grounds: "32 base-station tower handshakes at midnight staging facility, 14 friction ridge prints on seized crates, and recovery of dual burner SIMs.",
     exhibitsCount: 7
   },
+  "Imran Mansoori": {
+    role: "Security Guard & Offloading Proxy",
+    location: "Warehouse 17 Gate 02, Nhava Sheva",
+    sections: ["IPC Sec 201 (Destruction of Evidence)", "IPC Sec 120B"],
+    guiltRating: 78.5,
+    grounds: "Intentional power sabotage of CCTV Camera #04 during container offloading and 24 panic phone calls during police interception.",
+    exhibitsCount: 4
+  },
   "Imran Khan": {
     role: "Security Guard & Offloading Proxy",
     location: "Warehouse 17 Gate 02, Nhava Sheva",

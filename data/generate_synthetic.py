@@ -18,7 +18,7 @@ os.makedirs(OUT_DOCS_DIR, exist_ok=True)
 # Planted Ground Truth Entities & Connections
 PLANTED_ENTITIES = {
     "cluster_a": ["Devendra Sharma (devendra_001)", "Ramesh Kumar (ramesh_002)", "Suresh Patil (suresh_003)"],
-    "cluster_b": ["Tariq Ahmed (tariq_201)", "Imran Khan (imran_202)", "Zaid Sheikh (zaid_203)"],
+    "cluster_b": ["Tariq Ahmed (tariq_201)", "Imran Mansoori (imran_202)", "Zaid Sheikh (zaid_203)"],
     "bridge_entity": "Victor Vance (victor_999)",
     "key_location": "Warehouse 17, Nhava Sheva (warehouse_17)",
     "bridge_phone": "+91-98200-99999",
@@ -93,7 +93,7 @@ Date: 2026-04-04 18:45:00
 
 Field Agent Notes:
 On 2026-04-04 at 16:00 hrs, subject Victor Vance (Phone: +91-98200-99999) arrived at Warehouse 17, Nhava Sheva driving vehicle MH-04-AB-1234. 
-At 16:30 hrs, Victor Vance held a meeting inside Warehouse 17 with Tariq Ahmed (Phone: +91-98200-88888) and Imran Khan (Phone: +91-98200-77777). 
+At 16:30 hrs, Victor Vance held a meeting inside Warehouse 17 with Tariq Ahmed (Phone: +91-98200-88888) and Imran Mansoori (Phone: +91-98200-77777). 
 Tariq Ahmed manages Organization: Apex Global Logistics operating out of Warehouse 17, Nhava Sheva. 
 
 Conclusion:
@@ -114,7 +114,7 @@ Victor Vance acts as the key coordinating node (bridge) linking Devendra Sharma'
         "case_name": "Operation Nexus",
         "planted_findings": {
             "cluster_a": ["Devendra Sharma", "Ramesh Kumar", "Suresh Patil"],
-            "cluster_b": ["Tariq Ahmed", "Imran Khan", "Zaid Sheikh"],
+            "cluster_b": ["Tariq Ahmed", "Imran Mansoori", "Zaid Sheikh"],
             "bridge_entity": {
                 "name": "Victor Vance",
                 "phone": "+91-98200-99999",

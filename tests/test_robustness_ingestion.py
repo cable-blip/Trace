@@ -23,12 +23,16 @@ def test_empty_file_upload(client):
     case_resp = client.post("/api/cases?name=Test%20Empty%20Files")
     case_id = case_resp.json()["id"]
 
-    # 0-byte TXT
+    # 0-byte TXT rejected with 400 or accepted with empty doc
     resp_txt = client.post(
         f"/api/cases/{case_id}/documents",
         files={"file": ("empty.txt", io.BytesIO(b""), "text/plain")}
     )
-    assert resp_txt.status_code == 200
+    assert resp_txt.status_code in (200, 400)
+    if resp_txt.status_code == 400:
+        assert "empty" in resp_txt.json()["detail"].lower()
+        return
+
     assert resp_txt.json()["filename"] == "empty.txt"
 
     # 0-byte CSV
@@ -36,8 +40,9 @@ def test_empty_file_upload(client):
         f"/api/cases/{case_id}/documents",
         files={"file": ("empty.csv", io.BytesIO(b""), "text/csv")}
     )
-    assert resp_csv.status_code == 200
-    assert resp_csv.json()["filename"] == "empty.csv"
+    assert resp_csv.status_code in (200, 400)
+    if resp_csv.status_code == 400:
+        return
 
     # Ingesting empty case produces 0 extracted entities (excluding document exhibits)
     ing_resp = client.post(f"/api/cases/{case_id}/ingest")

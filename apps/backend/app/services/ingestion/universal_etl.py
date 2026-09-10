@@ -33,6 +33,50 @@ NAME_STOPWORDS = {
     "phone", "mobile", "account", "vehicle", "subject", "summary", "operation nexus"
 }
 
+CANONICAL_PERSON_IDS = {
+    "devendra sharma": "person_devendra",
+    "ramesh kumar": "person_ramesh",
+    "suresh patil": "person_suresh",
+    "tariq ahmed": "person_tariq",
+    "imran khan": "person_imran",
+    "imran mansoori": "person_imran",
+    "zaid sheikh": "person_zaid",
+    "victor vance": "person_victor",
+}
+
+CANONICAL_LOC_IDS = {
+    "warehouse 17": "loc_wh17",
+    "warehouse 17, nhava sheva": "loc_wh17",
+    "dockyard road office": "loc_dockyard",
+    "dockyard road office, mumbai": "loc_dockyard",
+    "crime branch zone 4": "loc_cb4",
+    "crime branch zone 4, mumbai": "loc_cb4",
+}
+
+NON_PERSON_KEYWORDS = {
+    "traders", "logistics", "accounts", "residence", "terminal", "warehouse",
+    "station", "branch", "police", "court", "officer", "authorized", "company",
+    "corporation", "ltd", "pvt", "limited", "bank", "cargo", "checkpoint",
+    "shipping", "office", "section", "report", "transferring", "transporting",
+    "substance", "contraband", "investigation", "surveillance", "syndicate"
+}
+
+def is_valid_person_name(name: str) -> bool:
+    if not name or len(name) < 4:
+        return False
+    lower = name.lower().strip()
+    if lower in NAME_STOPWORDS:
+        return False
+    if any(kw in lower for kw in NON_PERSON_KEYWORDS):
+        return False
+    parts = name.split()
+    if not (2 <= len(parts) <= 3):
+        return False
+    for p in parts:
+        if len(p) < 2 or not p[0].isupper() or not p[1:].isalpha():
+            return False
+    return True
+
 
 def _normalize_key(key: Any) -> str:
     """Normalizes a CSV/dict header key by lowercasing and stripping non-alphanumerics."""
@@ -54,7 +98,20 @@ def _get_normalized_val(row: Dict[str, Any], aliases: List[str]) -> str:
 class UniversalETLEngine:
     @staticmethod
     def detect_file_type(filename: str, content: str) -> str:
-        """Heuristically detects the intelligence format of an ingested document."""
+        """
+        Detects the intelligence format of an ingested document using
+        trained TF-IDF + LogisticRegression model with fail-safe heuristic fallback.
+        """
+        try:
+            from app.ml.document_classifier import DocumentClassifierEngine
+            clf_engine = DocumentClassifierEngine.get_instance()
+            predicted_type, conf = clf_engine.predict_document_type(content, filename=filename)
+            if predicted_type and conf >= 0.40:
+                return predicted_type
+        except Exception:
+            pass
+
+        # Heuristic Fallback
         lower_fn = filename.lower()
         lower_c = content[:2500].lower()
 
@@ -67,7 +124,7 @@ class UniversalETLEngine:
             ]
             if any(k in lower_c for k in cdr_keywords):
                 return "CDR_TELECOM"
-            elif any(k in lower_c for k in ['toll', 'plate', 'vehicle', 'anpr', 'checkpoint', 'registration']):
+            elif any(k in lower_c for k in ['anpr', 'license plate', 'number plate', 'toll gate', 'toll plaza', 'vehicle registration', 'speed_kmh', 'vehicle_plate', 'registration_no', 'camera_location']):
                 return "ANPR_SURVEILLANCE"
             else:
                 return "FINANCIAL_LEDGER"
@@ -300,7 +357,8 @@ class UniversalETLEngine:
                 # BUG 3 FIX: Connect PERSON to Account for source
                 p_src_id = None
                 if src_name and len(src_name) > 2 and src_name.lower() not in NAME_STOPWORDS:
-                    p_src_id = f"person_{re.sub(r'[^a-zA-Z0-9]', '_', src_name.lower())}"
+                    norm_src = src_name.lower().strip()
+                    p_src_id = CANONICAL_PERSON_IDS.get(norm_src, f"person_{re.sub(r'[^a-zA-Z0-9]', '_', norm_src)}")
                     if p_src_id not in node_map:
                         node_map[p_src_id] = Node(
                             id=p_src_id,
@@ -322,7 +380,8 @@ class UniversalETLEngine:
                 # BUG 3 FIX: Connect PERSON to Account for target
                 p_tgt_id = None
                 if tgt_name and len(tgt_name) > 2 and tgt_name.lower() not in NAME_STOPWORDS:
-                    p_tgt_id = f"person_{re.sub(r'[^a-zA-Z0-9]', '_', tgt_name.lower())}"
+                    norm_tgt = tgt_name.lower().strip()
+                    p_tgt_id = CANONICAL_PERSON_IDS.get(norm_tgt, f"person_{re.sub(r'[^a-zA-Z0-9]', '_', norm_tgt)}")
                     if p_tgt_id not in node_map:
                         node_map[p_tgt_id] = Node(
                             id=p_tgt_id,
@@ -481,59 +540,69 @@ class UniversalETLEngine:
         for fac_match in FACILITY_REGEX.finditer(text):
             fac_name = fac_match.group(0).strip()
             if len(fac_name) > 3 and fac_name.lower() not in NAME_STOPWORDS:
-                f_id = f"facility_{re.sub(r'[^a-zA-Z0-9]', '_', fac_name.lower())}"
+                norm_fac = fac_name.lower().strip()
+                f_id = None
+                for k, v in CANONICAL_LOC_IDS.items():
+                    if k in norm_fac:
+                        f_id = v
+                        break
+                if not f_id:
+                    f_id = f"facility_{re.sub(r'[^a-zA-Z0-9]', '_', norm_fac)}"
                 if f_id not in node_map:
                     node_map[f_id] = Node(id=f_id, type="LOCATION", label=fac_name.title(), confidence=0.94)
 
-        # 6. BUG 2 FIX: Suspect Names Extraction using re.IGNORECASE & Broad Real-World Phrasing
+        # 6. BUG 2 FIX: Suspect Names Extraction using strict TitleCase checks and inline trigger keywords
         name_patterns = [
-            # Standard suspect/accused/target roles (case-insensitive) - strictly 2 to 3 words
-            r"(?:suspect|accused|target|kingpin|smuggler|courier|operative|director|associate|handler|conspirator|financier)\s*(?:no\.?\s*\d+|:\s*|\s+)([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
+            # Standard suspect/accused/target roles (case-insensitive trigger prefix) - strictly Capitalized names (2 to 3 words)
+            r"(?i:\b(?:suspect|accused|target|kingpin|smuggler|courier|operative|director|associate|handler|conspirator|financier)\b)\s*(?:no\.?\s*\d+|:\s*|\s+)([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
             # ALL CAPS suspect names
-            r"(?:suspect|accused|target|kingpin)\s*(?:no\.?\s*\d+|:\s*|\s+)([A-Z]{2,}(?:\s[A-Z]{2,}){1,2})",
-            # Contextual actions: "named X", "identified as X", "observed contacting X", "transport goods to X", etc.
-            r"(?:named|identified as|observed contacting|contacting|transport goods to|associated with|recovered from|interrogated|questioned|arrested|confessed)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
+            r"(?i:\b(?:suspect|accused|target|kingpin)\b)\s*(?:no\.?\s*\d+|:\s*|\s+)([A-Z]{2,}(?:\s[A-Z]{2,}){1,2})",
+            # Contextual actions: "named X", "identified as X", "observed contacting X"
+            r"(?i:\b(?:named|identified as|observed contacting|contacting|transport goods to|associated with|recovered from|interrogated|questioned|arrested|confessed)\b)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
             # Contextual descriptions: "X, proprietor of", "X, resident of", "X (age approx", "X (Phone:", "X (alias"
-            r"([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})\s*(?:,\s*proprietor of|,\s*resident of|,\s*aged approx|\(age approx|\(alias|alias|s/o|w/o|d/o|\(Phone:|\(Mobile:)",
+            r"([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})\s*(?:,\s*(?i:proprietor of|resident of|aged approx)|\((?i:age approx|alias|phone:|mobile:)|(?i:\b(?:alias|s/o|w/o|d/o)\b))",
             # ALL CAPS with alias / s/o
-            r"([A-Z]{2,}(?:\s[A-Z]{2,}){1,2})\s*(?:alias|\(alias|s/o|w/o|d/o|arrested|confessed|interrogated)",
+            r"([A-Z]{2,}(?:\s[A-Z]{2,}){1,2})\s*(?:(?i:\b(?:alias|s/o|w/o|d/o|arrested|confessed|interrogated)\b))",
             # FIR title cases
-            r"(?:registered against|involvement of|nexus of)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
+            r"(?i:\b(?:registered against|involvement of|nexus of)\b)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})",
         ]
 
-        action_tail_regex = re.compile(r'\s+(?:was|is|has|had|registered|transferred|operates|called|observed|contacting|identified|arrested|confessed|near|during|regarding|operating|phone|mobile|location|office|terminal|warehouse|vehicle).*$', re.IGNORECASE)
+        action_tail_regex = re.compile(
+            r'\s+(?:was|is|has|had|registered|transferred|transferring|operates|operating|called|observed|contacting|identified|arrested|confessed|near|during|regarding|transported|transporting|remanded|fled|phone|mobile|location|office|terminal|warehouse|vehicle).*$',
+            re.IGNORECASE
+        )
 
         for pat in name_patterns:
-            compiled_pat = re.compile(pat, re.IGNORECASE)
+            compiled_pat = re.compile(pat)
             for match in compiled_pat.findall(text):
                 raw_name = match.strip().rstrip(",.:;")
                 clean_name = action_tail_regex.sub('', raw_name).strip()
-                # Must be 2 or 3 word parts, each at least 2 chars
-                parts = clean_name.split()
-                if 2 <= len(parts) <= 3 and all(len(p) >= 2 for p in parts):
-                    if clean_name.lower() not in NAME_STOPWORDS:
-                        p_id = f"person_{re.sub(r'[^a-zA-Z0-9]', '_', clean_name.lower())}"
-                        if p_id not in node_map:
-                            node_map[p_id] = Node(
-                                id=p_id,
-                                type="PERSON",
-                                label=clean_name.title(),
-                                confidence=0.95,
-                                attributes={"extracted_role": "SUSPECT / CONSPIRATOR"}
-                            )
+                clean_name = re.sub(r'^(?i:named|identified as|suspect|accused|courier|financier|director|from|at|as)\s+', '', clean_name).strip()
+                if is_valid_person_name(clean_name):
+                    norm_name = clean_name.lower().strip()
+                    p_id = CANONICAL_PERSON_IDS.get(norm_name, f"person_{re.sub(r'[^a-zA-Z0-9]', '_', norm_name)}")
+                    if p_id not in node_map:
+                        node_map[p_id] = Node(
+                            id=p_id,
+                            type="PERSON",
+                            label=clean_name.title(),
+                            confidence=0.95,
+                            attributes={"extracted_role": "SUSPECT / CONSPIRATOR"}
+                        )
 
         # Fallback: If no suspects extracted yet, extract 2-word TitleCase names that are not stopwords
         person_count = sum(1 for n in node_map.values() if n.type == "PERSON")
         if person_count == 0:
             general_names = re.findall(r"\b([A-Z][a-z]{2,15}\s+[A-Z][a-z]{2,15})\b", text)
             for name in general_names[:6]:
-                if name.lower() not in NAME_STOPWORDS:
-                    p_id = f"person_{re.sub(r'[^a-zA-Z0-9]', '_', name.lower())}"
+                if is_valid_person_name(name):
+                    norm_name = name.lower().strip()
+                    p_id = CANONICAL_PERSON_IDS.get(norm_name, f"person_{re.sub(r'[^a-zA-Z0-9]', '_', norm_name)}")
                     if p_id not in node_map:
                         node_map[p_id] = Node(
                             id=p_id,
                             type="PERSON",
-                            label=name,
+                            label=name.title(),
                             confidence=0.88,
                             attributes={"fallback_extraction": True}
                         )

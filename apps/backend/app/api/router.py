@@ -153,7 +153,7 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
             detail=f"Unsupported file type '.{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
         )
 
-    # --- File Size Limit ---
+    # --- File Size Limit Enforcement ---
     content_bytes = await file.read()
     if len(content_bytes) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
@@ -449,7 +449,7 @@ def run_culprit_analysis(case_id: str):
             raise HTTPException(status_code=404, detail="Case not found")
     repo = get_or_create_repo(case_id)
     from app.services.reasoning.bayesian_culprit_model import BayesianCulpritModel
-    return BayesianCulpritModel.calculate_culpability(repo)
+    return BayesianCulpritModel.calculate_culpability(repo, case_id=case_id)
 
 
 # 18. Predictive Crime Threat Forecasting & Markov Next-Move Simulation
@@ -1189,9 +1189,30 @@ async def ingest_file_universal(case_id: str, file: UploadFile = File(...)):
     import hashlib
     import io
     _validate_case_id(case_id)
+    original_filename = file.filename or "unknown.txt"
+    ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type '.{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
     content_bytes = await file.read()
+    if len(content_bytes) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty (0 bytes). Cannot ingest empty payload."
+        )
+    if len(content_bytes) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_BYTES // (1024*1024)} MB."
+        )
+
     sha256_hash = hashlib.sha256(content_bytes).hexdigest()
-    filename = file.filename or "unknown.txt"
+    filename = os.path.basename(original_filename).replace("..", "").replace("/", "").replace("\\", "")
+    if not filename:
+        filename = "upload.txt"
     doc_id = f"doc_{len(DOCUMENTS_DB) + 1}_{filename}"
 
     # Robust text extraction including PDF support
@@ -1318,6 +1339,11 @@ def get_case_red_flags(case_id: str):
     _validate_case_id(case_id)
     repo = get_or_create_repo(case_id)
     gdata = repo.get_all()
+    if not gdata.nodes and not gdata.edges:
+        case = CASES_DB.get(case_id)
+        if case and case.document_ids:
+            run_ingestion(case_id)
+            gdata = repo.get_all()
     from app.services.intelligence.red_flag_engine import RedFlagEngine
     return RedFlagEngine.scan_anomalies(gdata)
 

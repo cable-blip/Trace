@@ -41,8 +41,39 @@ class GraphMLEngine:
         if num_nodes < 3:
             return []
 
-        predicted_links = []
         node_map = {n.id: n for n in self.repo.get_all().nodes}
+
+        # Try Self-Supervised ML Link Prediction
+        try:
+            from app.ml.link_prediction_model import SelfSupervisedLinkPredictor
+            ml_links = SelfSupervisedLinkPredictor.predict_links_for_graph(ug, top_k=top_k)
+            if ml_links:
+                formatted = []
+                for l in ml_links:
+                    u = l["source_id"]
+                    v = l["target_id"]
+                    u_node = node_map.get(u)
+                    v_node = node_map.get(v)
+                    formatted.append({
+                        "source_id": u,
+                        "source_label": u_node.label if u_node else u,
+                        "source_type": u_node.type if u_node else "UNKNOWN",
+                        "target_id": v,
+                        "target_label": v_node.label if v_node else v,
+                        "target_type": v_node.type if v_node else "UNKNOWN",
+                        "link_probability": l["link_probability"],
+                        "adamic_adar_score": l["features"]["adamic_adar"],
+                        "resource_allocation_score": l["features"].get("resource_alloc", 0.0),
+                        "jaccard_coefficient": l["features"]["jaccard_similarity"],
+                        "shared_intermediaries_count": l["features"]["common_neighbors"],
+                        "status": "predicted, not confirmed",
+                        "inference_rationale": f"ML Self-Supervised graph embedding indicates unobserved coordination link (probability: {l['link_probability']*100:.1f}%). Predicted, not confirmed."
+                    })
+                return formatted[:top_k]
+        except Exception:
+            pass
+
+        predicted_links = []
 
         # Iterate over all non-adjacent pairs (u, v) where u != v and not connected
         for i in range(num_nodes):

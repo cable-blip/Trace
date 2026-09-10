@@ -8,7 +8,6 @@ to generate highly contextual, grounded answers with dynamic 3D highlight states
 from typing import List, Dict, Any, Tuple
 from app.models.schema import InvestigatorResponse, GraphData, Node, Edge
 from app.repositories.base import GraphRepository
-from app.services.reasoning.culprit_analyzer import SUSPECT_PROFILES
 
 class AIInvestigatorEngine:
     def __init__(self, repo: GraphRepository):
@@ -82,9 +81,8 @@ class AIInvestigatorEngine:
         return self._handle_general_contextual_query(question, all_data)
 
     def _handle_suspect_dossier_query(self, suspect_node: Node, question: str) -> InvestigatorResponse:
-        """Assembles a highly detailed suspect profile using Bayesian variables and neighborhood links."""
+        """Assembles a highly detailed suspect profile using real graph topology and ML priority model."""
         p_id = suspect_node.id
-        profile = SUSPECT_PROFILES.get(p_id)
 
         # Gather local graph relations
         neighbors_graph = self.repo.get_neighbors(p_id, depth=1)
@@ -99,30 +97,29 @@ class AIInvestigatorEngine:
         highlight_nodes = [n.id for n in neighbors_graph.nodes]
         highlight_edges = [e.id for e in neighbors_graph.edges if e.id]
 
-        if profile:
-            guilt = profile["guilt_probability"]
-            alibi_pct = int(profile["alibi_validity"] * 100)
-            reasons_bullets = "\n".join([f"- **Inculpatory fact**: {r}" for r in profile["reasons"]])
-            rivalries = ", ".join([f"**{r}**" for r in profile["rivalry_targets"]])
-            rivalries_str = f" Known hostility towards: {rivalries}." if rivalries else ""
+        # Compute dynamic priority from real graph topology
+        from app.ml.priority_model import InvestigativePriorityMLModel
+        priority_engine = InvestigativePriorityMLModel.get_instance()
+        nx_graph = getattr(self.repo, 'graph', None)
+        if nx_graph is None:
+            nx_graph = nx.Graph()
+            for n in self.repo.get_all().nodes:
+                nx_graph.add_node(n.id, label=n.label, type=n.type)
+            for e in self.repo.get_all().edges:
+                nx_graph.add_edge(e.source, e.target, type=e.type)
 
-            answer = (
-                f"### Intelligence Dossier: **{profile['name']}**\n"
-                f"- **Role in network**: {profile['role']}\n"
-                f"- **Culpability rating**: `{guilt}% guilt probability` based on Bayesian telemetry constraints.\n"
-                f"- **Mental state & Profile**: Personality traits: *{profile['personality']}*. Mental condition: *{profile['mental_state']}*.{rivalries_str}\n"
-                f"- **Evidentiary alibi strength**: Evaluated at `{alibi_pct}% credibility`.\n"
-                f"- **Evidentiary basis**:\n{reasons_bullets}\n\n"
-                f"**Direct relations in graph**: Observed in {len(direct_connections)} relationships across call logs, bank transfers, and field files."
-            )
-        else:
-            answer = (
-                f"### Intelligence Record: **{suspect_node.label}**\n"
-                f"- **Entity Type**: `{suspect_node.type}`\n"
-                f"- **Extraction Confidence Score**: `{int(suspect_node.confidence * 100)}%`\n"
-                f"- **Direct Connections**: Observed in {len(direct_connections)} relationships in the case graph.\n"
-                f"- **Relationships**: {', '.join(direct_connections[:5]) if direct_connections else 'Isolated entity'}"
-            )
+        score, reasons = priority_engine.predict_priority(nx_graph, p_id)
+        reasons_bullets = "\n".join([f"- **Topological Indicator**: {r}" for r in reasons])
+
+        answer = (
+            f"### Intelligence Dossier: **{suspect_node.label}**\n"
+            f"- **Entity Type**: `{suspect_node.type}`\n"
+            f"- **Investigative Priority Rating**: `{score}% priority score` derived from NetworkX topology.\n"
+            f"- **Topological Reasons**:\n{reasons_bullets}\n\n"
+            f"**Direct relations in graph**: Observed in {len(direct_connections)} relationships across call logs, bank transfers, and field files.\n"
+            f"**Key Links**: {', '.join(direct_connections[:4]) if direct_connections else 'Isolated node'}\n\n"
+            f"> *Statutory Notice*: INVESTIGATIVE DECISION SUPPORT ONLY — Not legal determination of criminal guilt (Sec 161 CrPC / Sec 180 BNSS)."
+        )
 
         return InvestigatorResponse(
             answer=answer,

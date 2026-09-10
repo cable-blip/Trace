@@ -19,6 +19,7 @@ KNOWN_PERSONS = [
     ("Ramesh Kumar", "person_ramesh"),
     ("Suresh Patil", "person_suresh"),
     ("Tariq Ahmed", "person_tariq"),
+    ("Imran Mansoori", "person_imran"),
     ("Imran Khan", "person_imran"),
     ("Zaid Sheikh", "person_zaid"),
     ("Victor Vance", "person_victor")

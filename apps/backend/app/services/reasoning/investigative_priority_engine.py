@@ -77,13 +77,10 @@ class InvestigativePriorityEngine:
             comms_edges = [e for e in connected_edges if any(k in e.type for k in ("CALL", "PHONE", "COMMUNICATE", "CONTACT", "INTERCEPT"))]
             vehicle_edges = [e for e in connected_edges if any(k in e.type for k in ("TRAVEL", "VEHICLE", "SPOTTED"))]
 
-            # Composite explainable priority score (0.0 to 100.0, unclamped)
-            score_connectivity = min(deg * 100.0, 25.0)
-            score_bridge = min(btw * 150.0, 35.0)
-            score_corroboration = min(doc_count * 10.0, 25.0)
-            score_nexus = 15.0 if (len(financial_edges) > 0 and len(comms_edges) > 0) else (8.0 if (financial_edges or comms_edges) else 3.0)
-
-            priority_score = round(min(score_connectivity + score_bridge + score_corroboration + score_nexus, 98.5), 1)
+            # Composite explainable priority score using XGBoost Priority Model
+            from app.ml.priority_model import InvestigativePriorityMLModel
+            ml_priority, ml_reasons = InvestigativePriorityMLModel.get_instance().predict_priority(ug, p.id)
+            priority_score = ml_priority
             evidence_support_score = round(min(20.0 + (doc_count * 20.0) + (len(connected_edges) * 3.0), 96.0), 1)
 
             # Role hypothesis (objective & descriptive, not accusatory)

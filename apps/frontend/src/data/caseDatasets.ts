@@ -15,7 +15,7 @@ export const OFFLINE_GRAPHS: Record<string, GraphData> = {
       { id: "person_ramesh", type: "PERSON", label: "Ramesh Kumar", confidence: 0.95, attributes: { role: "Port Customs Clearance Agent", alibi: "Weak travel alibi; vehicle spotted at warehouse", coords: "18.9500, 72.9500" } },
       { id: "person_suresh", type: "PERSON", label: "Suresh Patil", confidence: 0.92, attributes: { role: "Wholesale Contraband Distributor", alibi: "Verified presence at local market", coords: "19.0330, 73.0297" } },
       { id: "person_tariq", type: "PERSON", label: "Tariq Ahmed", confidence: 0.96, attributes: { role: "Warehouse Operator / Consignment Receiver", alibi: "Disproven out-of-town alibi; 32 tower hits at 2 AM", coords: "18.9488, 72.9554" } },
-      { id: "person_imran", type: "PERSON", label: "Imran Khan", confidence: 0.90, attributes: { role: "Security Guard & Offloading Proxy", alibi: "Claims was asleep; 24 calls to Tariq recorded", coords: "18.9510, 72.9580" } },
+      { id: "person_imran", type: "PERSON", label: "Imran Mansoori", confidence: 0.90, attributes: { role: "Security Guard & Offloading Proxy", alibi: "Claims was asleep; 24 calls to Tariq recorded", coords: "18.9510, 72.9580" } },
       { id: "person_zaid", type: "PERSON", label: "Zaid Sheikh", confidence: 0.88, attributes: { role: "Hawala Cash Courier", coords: "18.9400, 72.8300" } },
       { id: "person_victor", type: "PERSON", label: "Victor Vance", confidence: 0.94, attributes: { role: "Overseas Shipment Coordinator", coords: "25.2048, 55.2708" } },
       { id: "phone_devendra", type: "PHONE", label: "+91-98111-22233", confidence: 0.98, attributes: { operator: "Airtel Mumbai", is_burner: false } },

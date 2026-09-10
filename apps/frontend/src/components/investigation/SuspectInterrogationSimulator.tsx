@@ -68,7 +68,7 @@ const SUSPECT_CONTEXTS: Record<string, {
     presetQuestions: [
       "Your phone connected to Nhava Sheva tower 32 times between 1 AM and 4 AM.",
       "We seized 14 latent fingerprints matching you on the transport crates.",
-      "Imran Khan stated you ordered the security cameras disabled during offloading.",
+      "Imran Mansoori stated you ordered the security cameras disabled during offloading.",
       "Explain the secondary burner handset (+91-98000-77788) recovered from your desk."
     ],
     evidenceExhibits: [

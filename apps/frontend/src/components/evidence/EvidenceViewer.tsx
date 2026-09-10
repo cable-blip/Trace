@@ -30,7 +30,7 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ evidenceId, onCl
   const renderHighlightedContent = (text: string) => {
     // Known entity patterns to highlight inline
     const replacements: Array<{ regex: RegExp; class: string; label: string }> = [
-      { regex: /(Devendra Sharma|Ramesh Kumar|Suresh Patil|Tariq Ahmed|Imran Khan|Zaid Sheikh|Victor Vance)/g, class: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', label: 'PERSON' },
+      { regex: /(Devendra Sharma|Ramesh Kumar|Suresh Patil|Tariq Ahmed|Imran Mansoori|Imran Khan|Zaid Sheikh|Victor Vance)/g, class: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', label: 'PERSON' },
       { regex: /(\+91-\d{5}-\d{5}|\+?\d{10,12})/g, class: 'bg-amber-500/20 text-amber-300 border-amber-500/40', label: 'PHONE' },
       { regex: /([A-Z]{2}-\d{2}-[A-Z]{1,2}-\d{4})/g, class: 'bg-red-500/20 text-red-300 border-red-500/40', label: 'VEHICLE' },
       { regex: /(ACC-\d{6})/g, class: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', label: 'ACCOUNT' },
