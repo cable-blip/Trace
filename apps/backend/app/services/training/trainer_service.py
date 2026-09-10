@@ -136,7 +136,20 @@ class TrainerService:
                 max_features = int(hyperparameters.get("max_features", 1000))
                 vec = TfidfVectorizer(ngram_range=(1, 2), max_features=max_features)
                 
-                if model_family == "RandomForest":
+                if model_family == "XGBoost":
+                    import xgboost as xgb
+                    n_estimators = min(int(hyperparameters.get("n_estimators", 100)), 300)
+                    max_depth = min(int(hyperparameters.get("max_depth", 4)), 8)
+                    learning_rate = min(float(hyperparameters.get("learning_rate", 0.08)), 0.5)
+                    clf = xgb.XGBClassifier(
+                        n_estimators=n_estimators,
+                        max_depth=max_depth,
+                        learning_rate=learning_rate,
+                        eval_metric="logloss",
+                        random_state=random_seed,
+                        n_jobs=2
+                    )
+                elif model_family == "RandomForest":
                     n_estimators = int(hyperparameters.get("n_estimators", 100))
                     clf = RandomForestClassifier(n_estimators=n_estimators, random_state=random_seed)
                 else:
@@ -149,8 +162,19 @@ class TrainerService:
                 ])
             else:
                 # Tabular anomaly
-                c_param = float(hyperparameters.get("c_param", 1.0))
-                pipeline = LogisticRegression(C=c_param, max_iter=500, class_weight="balanced", random_state=random_seed)
+                if model_family == "XGBoost":
+                    import xgboost as xgb
+                    pipeline = xgb.XGBClassifier(
+                        n_estimators=100,
+                        max_depth=3,
+                        learning_rate=0.1,
+                        eval_metric="logloss",
+                        random_state=random_seed,
+                        n_jobs=2
+                    )
+                else:
+                    c_param = float(hyperparameters.get("c_param", 1.0))
+                    pipeline = LogisticRegression(C=c_param, max_iter=500, class_weight="balanced", random_state=random_seed)
 
             job_record["progress_pct"] = 75
 

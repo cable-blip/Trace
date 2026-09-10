@@ -550,6 +550,36 @@ def train_dataset_endpoint(case_id: str, req: Dict[str, Any]):
     return MLDatasetTrainer.train_on_raw_dataframe(df, dataset_type=dataset_type)
 
 
+# 25b. XGBoost Link Prediction & Forensic Co-Conspirator Inference
+@router.get("/cases/{case_id}/ml/xgboost/predict")
+def get_xgboost_link_predictions(case_id: str, top_k: int = 10, min_probability: float = 0.25):
+    _validate_case_id(case_id)
+    repo = get_or_create_repo(case_id)
+    from app.services.analytics.xgboost_engine import XGBoostLinkPredictor
+    return XGBoostLinkPredictor.get_link_predictions(case_id, repo, top_k=top_k, min_probability=min_probability)
+
+
+# 25c. Bounded XGBoost Model Training & Calibration
+@router.post("/cases/{case_id}/ml/xgboost/train")
+def train_xgboost_model_endpoint(case_id: str, req: Dict[str, Any] = None):
+    _validate_case_id(case_id)
+    repo = get_or_create_repo(case_id)
+    hyperparameters = req.get("hyperparameters", {}) if req else {}
+    from app.services.analytics.xgboost_engine import XGBoostLinkPredictor
+    return XGBoostLinkPredictor.train_xgboost_model(case_id, repo, hyperparameters=hyperparameters)
+
+
+# 25d. XGBoost Forensic Model Telemetry & Security Integrity Check
+@router.get("/cases/{case_id}/ml/xgboost/telemetry")
+def get_xgboost_telemetry(case_id: str):
+    _validate_case_id(case_id)
+    repo = get_or_create_repo(case_id)
+    from app.services.analytics.xgboost_engine import XGBoostLinkPredictor
+    if case_id not in XGBoostLinkPredictor._cached_metadata:
+        XGBoostLinkPredictor.train_xgboost_model(case_id, repo)
+    return XGBoostLinkPredictor._cached_metadata.get(case_id, {})
+
+
 # ---------------------------------------------------------------------------
 # Bounded ML Training Subsystem (Data-Quality & Info-Extraction ONLY)
 # Strictly disallows guilt, confession, deception, or criminality modeling.

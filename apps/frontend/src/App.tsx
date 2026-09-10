@@ -23,6 +23,7 @@ import { EvidenceLedger } from './components/evidence/EvidenceLedger';
 import { InvestigativePriorityPanel } from './components/investigation/InvestigativePriorityPanel';
 import { LandingPortal } from './components/layout/LandingPortal';
 import { CaseManagerModal } from './components/layout/CaseManagerModal';
+import { MLModelModal } from './components/analytics/MLModelModal';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { GraphData, Node, NodeType, Case, Edge } from './types';
 import { fetchGraph, fetchCommunities, triggerPdfDownload, fetchCases, createCase, deleteCase, checkBackendHealth, onBackendHealthChange, isDemoModeActive, setDemoModeActive } from './services/api';
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [isWarrantOpen, setIsWarrantOpen] = useState(false);
   const [isCaseManagerOpen, setIsCaseManagerOpen] = useState(false);
+  const [isMLModalOpen, setIsMLModalOpen] = useState(false);
 
   // Graph Layout & Filtering State
   const [layoutName, setLayoutName] = useState<string>('cose');
@@ -321,6 +323,7 @@ export const App: React.FC = () => {
       onAuditClick={() => setIsAuditOpen(true)}
       onExportClick={handleExportReport}
       onWarrantClick={() => setIsWarrantOpen(true)}
+      onMLModalClick={() => setIsMLModalOpen(true)}
       onOpenCaseManager={() => setIsCaseManagerOpen(true)}
       onDeleteActiveCase={handleDeleteCase}
       runtimeMode={isDemoMode ? 'demo' : isBackendHealthy ? 'live' : 'offline'}
@@ -844,6 +847,22 @@ export const App: React.FC = () => {
         onCreateCase={handleCreateCase}
         onDeleteCase={handleDeleteCase}
         onOpenIngestion={() => setIsIngestionOpen(true)}
+      />
+
+      {/* Machine Learning XGBoost Intelligence Engine Modal */}
+      <MLModelModal
+        caseId={caseId}
+        isOpen={isMLModalOpen}
+        onClose={() => setIsMLModalOpen(false)}
+        onFocusNode={(nodeId) => {
+          const node = graphData.nodes.find(n => n.id === nodeId);
+          if (node) setSelectedNode(node);
+          setCurrentTab('workspace');
+        }}
+        onApplyHighlight={(nodeIds, edgeIds) => {
+          handleApplyHighlight(nodeIds, edgeIds);
+          setCurrentTab('workspace');
+        }}
       />
     </AppShell>
     </>

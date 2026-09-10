@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Network, LayoutDashboard, Clock, Upload, Download,
   ShieldCheck, Shield, Navigation, FileCheck, ShieldAlert,
-  Lock, Siren, FolderGit2, Trash2, Scale, ChevronLeft, ChevronRight
+  Lock, Siren, FolderGit2, Trash2, Scale, ChevronLeft, ChevronRight,
+  Cpu
 } from 'lucide-react';
 import { Case } from '../../types';
 
@@ -18,6 +19,7 @@ interface AppShellProps {
   onAuditClick: () => void;
   onExportClick: () => void;
   onWarrantClick?: () => void;
+  onMLModalClick?: () => void;
   onOpenCaseManager?: () => void;
   onDeleteActiveCase?: (caseId: string) => void;
   runtimeMode?: 'live' | 'demo' | 'offline';
@@ -27,7 +29,7 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({
   currentTab, onTabChange, cases, currentCaseId, onCaseChange,
   nodeCount, edgeCount, onUploadClick, onAuditClick, onExportClick, onWarrantClick,
-  onOpenCaseManager, onDeleteActiveCase, runtimeMode = 'live', children,
+  onMLModalClick, onOpenCaseManager, onDeleteActiveCase, runtimeMode = 'live', children,
 }) => {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -280,6 +282,23 @@ export const AppShell: React.FC<AppShellProps> = ({
               <Upload className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Ingest</span>
             </button>
+
+            {onMLModalClick && (
+              <button
+                onClick={onMLModalClick}
+                className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(6,182,212,0.2) 0%, rgba(147,51,234,0.15) 100%)',
+                  border: '1px solid rgba(6,182,212,0.5)',
+                  color: '#38BDF8',
+                  boxShadow: '0 0 16px rgba(6,182,212,0.2)',
+                }}
+                title="Launch XGBoost Conspirator Link Prediction & Forensic Lab"
+              >
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">ML Lab</span>
+              </button>
+            )}
 
             {onWarrantClick && (
               <button
