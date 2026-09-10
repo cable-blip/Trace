@@ -79,13 +79,13 @@ export const AppShell: React.FC<AppShellProps> = ({
   };
 
   const tabs = [
-    { id: 'portal',                   label: 'Mission Portal',        icon: ShieldAlert },
-    { id: 'workspace',                label: 'Case Workspace',        icon: LayoutDashboard },
-    { id: 'investigative_priorities', label: 'Priority Assessment',   icon: Scale },
-    { id: 'ledger',                   label: 'Forensic Ledger',       icon: Lock },
-    { id: 'network',                  label: 'Network Canvas',        icon: Network },
-    { id: 'timeline',                 label: 'Timeline',              icon: Clock },
-    { id: 'geospatial',               label: 'Geo Radar',             icon: Navigation },
+    { id: 'portal',                   label: 'Portal',                icon: ShieldAlert,      title: 'Mission Briefing Portal' },
+    { id: 'workspace',                label: 'Workspace',             icon: LayoutDashboard,  title: 'Case Workspace & 3D Knowledge Graph' },
+    { id: 'investigative_priorities', label: 'Priorities',            icon: Scale,            title: 'Investigative Priority Assessment (Decision Support)' },
+    { id: 'ledger',                   label: 'Ledger',                icon: Lock,             title: 'Forensic Evidence & Transaction Ledger' },
+    { id: 'network',                  label: 'Graph',                 icon: Network,          title: 'Full Screen Network Canvas' },
+    { id: 'timeline',                 label: 'Timeline',              icon: Clock,            title: 'Chronological Evidence Timeline' },
+    { id: 'geospatial',               label: 'Geo Radar',             icon: Navigation,       title: 'Geospatial Radar & Location Mapping' },
   ];
 
   return (
@@ -101,15 +101,15 @@ export const AppShell: React.FC<AppShellProps> = ({
           zIndex: 50,
         }}
       >
-        <div className="flex items-center justify-between h-full px-4 gap-3 w-full">
+        <div className="flex items-center justify-between h-full px-3 md:px-4 gap-2 md:gap-3 w-full">
 
           {/* ── Brand + Case Selector ── */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
             {/* 3D Logo Badge */}
             <div
               className="float-3d btn-3d flex items-center justify-center rounded-lg text-xs font-black font-mono tracking-wider select-none cursor-default"
               style={{
-                width: 52, height: 36,
+                width: 48, height: 34,
                 background: 'linear-gradient(135deg, rgba(6,182,212,0.2) 0%, rgba(16,185,129,0.1) 100%)',
                 border: '1px solid rgba(6,182,212,0.4)',
                 color: '#06B6D4',
@@ -123,13 +123,14 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
 
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Case //</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest hidden sm:inline">Case //</span>
                 <select
                   value={currentCaseId}
                   onChange={e => onCaseChange(e.target.value)}
-                  className="bg-transparent border-0 text-xs font-bold tracking-wider text-cyan-300 font-mono focus:outline-none cursor-pointer"
+                  className="bg-transparent border-0 text-xs font-bold tracking-wider text-cyan-300 font-mono focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[150px] md:max-w-[180px] truncate"
                   style={{ textShadow: '0 0 10px rgba(6,182,212,0.6)' }}
+                  title={`Active Case: ${cases.find(c => c.id === currentCaseId)?.name || currentCaseId}`}
                 >
                   {cases.map(c => (
                     <option key={c.id} value={c.id} style={{ background: '#0f1115', color: '#e2e8f0' }}>
@@ -180,7 +181,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   </span>
                 )}
               </div>
-              <div className="flex gap-2 text-[10px] font-mono mt-0.5 text-slate-500">
+              <div className="hidden lg:flex gap-2 text-[10px] font-mono mt-0.5 text-slate-500">
                 <span><span className="text-emerald-400 font-bold">{nodeCount}</span> nodes</span>
                 <span>•</span>
                 <span><span className="text-cyan-400 font-bold">{edgeCount}</span> edges</span>
@@ -188,12 +189,12 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
           </div>
 
-          {/* ── Scrollable 3D Navigation Tabs with Left/Right Controls ── */}
-          <div className="flex-1 min-w-0 mx-2 flex items-center relative">
+          {/* ── Scrollable 3D Navigation Tabs with Inline Controls ── */}
+          <div className="flex-1 min-w-0 mx-1 md:mx-2 flex items-center justify-center gap-1">
             {canScrollLeft && (
               <button
                 onClick={() => scrollNav('left')}
-                className="absolute left-0 z-20 p-1 rounded-md bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 shadow-lg transition"
+                className="shrink-0 p-1 rounded-md bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 shadow-md transition z-10"
                 title="Scroll navigation left"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -203,7 +204,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <div
               ref={navContainerRef}
               onWheel={handleNavWheel}
-              className="w-full overflow-x-auto scrollbar-none py-1 flex items-center scroll-smooth px-1"
+              className="overflow-x-auto scrollbar-none py-1 flex items-center scroll-smooth px-0.5"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               <nav
@@ -225,7 +226,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                       onClick={() => onTabChange(tab.id)}
                       onMouseEnter={() => setHoveredTab(tab.id)}
                       onMouseLeave={() => setHoveredTab(null)}
-                      className="btn-3d relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all duration-200 shrink-0 whitespace-nowrap"
+                      title={tab.title}
+                      className="btn-3d relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all duration-200 shrink-0 whitespace-nowrap"
                       style={{
                         background: active
                           ? 'linear-gradient(135deg, rgba(6,182,212,0.25) 0%, rgba(6,182,212,0.1) 100%)'
@@ -243,7 +245,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                           style={{ background: '#06B6D4', boxShadow: '0 0 8px #06B6D4' }}
                         />
                       )}
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
                       <span>{tab.label}</span>
                     </button>
                   );
@@ -254,7 +256,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             {canScrollRight && (
               <button
                 onClick={() => scrollNav('right')}
-                className="absolute right-0 z-20 p-1 rounded-md bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 shadow-lg transition"
+                className="shrink-0 p-1 rounded-md bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 shadow-md transition z-10"
                 title="Scroll navigation right"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -262,11 +264,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             )}
           </div>
 
-          {/* ── Action Buttons (Single Primary Ingestion Action) ── */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* ── Action Buttons ── */}
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
             <button
               onClick={onUploadClick}
-              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg transition-all font-bold"
+              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all font-bold"
               style={{
                 background: 'linear-gradient(135deg, rgba(6,182,212,0.25) 0%, rgba(16,185,129,0.2) 100%)',
                 border: '1px solid rgba(6,182,212,0.6)',
@@ -276,13 +278,13 @@ export const AppShell: React.FC<AppShellProps> = ({
               title="Ingest Real FIR, CDR, Bank Statement or Case Records"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Ingest Case Data</span>
+              <span className="hidden sm:inline">Ingest</span>
             </button>
 
             {onWarrantClick && (
               <button
                 onClick={onWarrantClick}
-                className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all"
+                className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2 py-1.5 rounded-lg transition-all"
                 style={{
                   background: 'rgba(239,68,68,0.08)',
                   border: '1px solid rgba(239,68,68,0.3)',
@@ -291,13 +293,13 @@ export const AppShell: React.FC<AppShellProps> = ({
                 title="Compile Judicial Evidence Brief (Decision Support)"
               >
                 <FileCheck className="w-3.5 h-3.5" />
-                <span>Judicial Brief</span>
+                <span className="hidden md:inline">Brief</span>
               </button>
             )}
 
             <button
               onClick={onAuditClick}
-              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all"
+              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2 py-1.5 rounded-lg transition-all"
               style={{
                 background: 'rgba(16,185,129,0.05)',
                 border: '1px solid rgba(16,185,129,0.2)',
@@ -306,12 +308,12 @@ export const AppShell: React.FC<AppShellProps> = ({
               title="View Chain of Evidence Audit Trail"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Audit</span>
+              <span className="hidden md:inline">Audit</span>
             </button>
 
             <button
               onClick={onExportClick}
-              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded-lg transition-all"
+              className="btn-3d flex items-center gap-1.5 text-xs font-mono px-2 py-1.5 rounded-lg transition-all"
               style={{
                 background: 'rgba(6,182,212,0.05)',
                 border: '1px solid rgba(6,182,212,0.2)',
@@ -320,12 +322,12 @@ export const AppShell: React.FC<AppShellProps> = ({
               title="Export Case Dossier & Intelligence Report"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export</span>
+              <span className="hidden md:inline">Export</span>
             </button>
 
             {/* Security Integrity badge */}
             <div
-              className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-lg"
+              className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-1 rounded-lg"
               style={{
                 background: 'rgba(16,185,129,0.05)',
                 border: '1px solid rgba(16,185,129,0.15)',
@@ -333,8 +335,8 @@ export const AppShell: React.FC<AppShellProps> = ({
               }}
               title="End-to-End Cryptographic Chain of Custody Verified"
             >
-              <Shield className="w-3 h-3" />
-              <span>SECURED</span>
+              <Shield className="w-3 h-3 text-emerald-400" />
+              <span className="hidden xl:inline">SECURED</span>
             </div>
           </div>
         </div>

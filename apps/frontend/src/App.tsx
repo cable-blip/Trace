@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Database, Upload, AlertTriangle, Filter, RefreshCw } from 'lucide-react';
+import { Sparkles, Database, Upload, AlertTriangle, Filter, RefreshCw, X } from 'lucide-react';
 import { AppShell } from './components/layout/AppShell';
 import { ParticleBackground } from './components/layout/ParticleBackground';
 import { GraphCanvas } from './components/graph/GraphCanvas';
@@ -87,6 +87,25 @@ export const App: React.FC = () => {
   // Backend Health & Demo Mode States
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean>(true);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(isDemoModeActive());
+
+  const isLocalEnvironment = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  const [isOfflineBannerDismissed, setIsOfflineBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('trace_offline_banner_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isDemoBannerDismissed, setIsDemoBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('trace_demo_banner_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     checkBackendHealth().then(setIsBackendHealthy);
@@ -306,13 +325,13 @@ export const App: React.FC = () => {
       onDeleteActiveCase={handleDeleteCase}
       runtimeMode={isDemoMode ? 'demo' : isBackendHealthy ? 'live' : 'offline'}
     >
-      {/* Live Engine Status Warning Banner */}
-      {!isBackendHealthy && (
-        <div className="bg-amber-950/90 border-b border-amber-500/40 px-4 py-2 flex items-center justify-between text-xs text-amber-300 font-mono shrink-0 shadow-lg z-50">
+      {/* Local Engine Status Warning Banner (Only displayed when running locally and backend is offline) */}
+      {!isBackendHealthy && isLocalEnvironment && !isOfflineBannerDismissed && (
+        <div className="bg-amber-950/80 border-b border-amber-500/30 px-4 py-1.5 flex items-center justify-between text-xs text-amber-300 font-mono shrink-0 shadow-md z-40">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>
-              <strong>Live TRACE Engine Offline (http://127.0.0.1:8000)</strong> — Running in client sandbox. Outputs are derived from your real uploaded records.
+              <strong>Local TRACE Engine Offline (127.0.0.1:8000)</strong> — Running in offline client sandbox mode.
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -321,48 +340,59 @@ export const App: React.FC = () => {
                 const ok = await checkBackendHealth();
                 if (ok) loadCaseData(caseId);
               }}
-              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition text-[11px]"
+              className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition text-[10px]"
             >
               Retry Server
             </button>
-            <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
-              <input
-                type="checkbox"
-                checked={isDemoMode}
-                onChange={(e) => {
-                  setDemoModeActive(e.target.checked);
-                  setIsDemoMode(e.target.checked);
-                  loadCaseData(caseId);
-                }}
-                className="rounded border-slate-600 bg-slate-800 text-cyan-500"
-              />
-              <span>Demo Fallback Mode</span>
-            </label>
+            <button
+              onClick={() => {
+                setIsOfflineBannerDismissed(true);
+                try { sessionStorage.setItem('trace_offline_banner_dismissed', 'true'); } catch {}
+              }}
+              className="p-1 rounded text-amber-400 hover:text-amber-200 hover:bg-amber-500/20 transition"
+              title="Dismiss warning"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Persistent Synthetic Demo Data Warning Banner */}
-      {isDemoMode && (
-        <div className="bg-amber-950/80 border-b border-amber-500/50 px-4 py-2 flex items-center justify-between text-xs text-amber-200 font-mono shrink-0 shadow-lg z-50">
+      {/* Prototype / Demo Showcase Banner (Slim, non-alarming, easily dismissible) */}
+      {isDemoMode && !isDemoBannerDismissed && (
+        <div className="bg-slate-900/90 border-b border-amber-500/30 px-4 py-1 flex items-center justify-between text-xs text-slate-300 font-mono shrink-0 shadow-md z-40">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 text-[10px]">
-              SYNTHETIC DEMO DATA
+            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 text-[9px] uppercase tracking-wider">
+              Prototype Showcase
             </span>
-            <span>
-              Synthetic demo mode active. Graphs and intelligence entities are pre-packaged simulations for demonstration purposes only.
+            <span className="text-[11px] text-slate-300">
+              Demonstration sandbox active &bull; Pre-packaged synthetic investigation cases loaded.
             </span>
           </div>
-          <button
-            onClick={() => {
-              setDemoModeActive(false);
-              setIsDemoMode(false);
-              loadCaseData(caseId);
-            }}
-            className="px-2.5 py-1 rounded bg-amber-500/30 hover:bg-amber-500/40 border border-amber-500/50 text-amber-100 transition text-[11px] font-bold"
-          >
-            Switch to Live Case Mode
-          </button>
+          <div className="flex items-center gap-2">
+            {isLocalEnvironment && (
+              <button
+                onClick={() => {
+                  setDemoModeActive(false);
+                  setIsDemoMode(false);
+                  loadCaseData(caseId);
+                }}
+                className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 transition text-[10px]"
+              >
+                Switch to Live
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setIsDemoBannerDismissed(true);
+                try { sessionStorage.setItem('trace_demo_banner_dismissed', 'true'); } catch {}
+              }}
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition"
+              title="Dismiss banner"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
